@@ -2,125 +2,132 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import { IconExternalLink, IconSearch, IconWorld, IconBolt, IconLock, IconArrowLeft } from "@tabler/icons-react";
+import {
+  IconArrowLeft,
+  IconExternalLink,
+  IconFileText,
+  IconSearch,
+  IconUsers,
+  IconWorld,
+} from "@tabler/icons-react";
 
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
+import { Skeleton } from "~/components/ui/skeleton";
 import { useExploreForms } from "~/hooks/api/forms";
 
 export function ExploreClient() {
   const { forms, isLoading, error } = useExploreForms({ limit: 24 });
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Search filter
   const filteredForms = useMemo(() => {
-    if (!searchQuery) return forms;
-    const lower = searchQuery.toLowerCase();
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return forms;
+
     return forms.filter(
       (f) =>
-        f.title.toLowerCase().includes(lower) ||
-        (f.description ?? "").toLowerCase().includes(lower),
+        f.title.toLowerCase().includes(query) ||
+        stripHtml(f.description ?? "").toLowerCase().includes(query) ||
+        f.slug.toLowerCase().includes(query),
     );
   }, [forms, searchQuery]);
 
   return (
-    <main className="val-dot-grid min-h-dvh px-4 py-8">
-      <div className="mx-auto max-w-6xl space-y-6">
-        
-        {/* HEADER BRANDING CARD */}
-        <section className="p-6 relative overflow-hidden bg-[#323949] border border-[#3d3e51] rounded-[3px] shadow-[0_0_20px_rgba(76,82,101,0.05)]">
-          <div className="absolute top-0 right-0 w-[60px] h-[60px] opacity-10 flex items-center justify-center translate-x-3 -translate-y-3 rotate-45 bg-[#4c5265]/10 select-none">
-            <IconWorld className="size-8 text-[#FFFFFF]" />
-          </div>
-
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className="border-[#3d3e51] text-[#FFFFFF] rounded-none uppercase text-[10px] tracking-widest px-2 py-0.5 font-mono">
-                  PUBLIC FORMS DIRECTORY
-                </Badge>
-                <Button asChild size="sm" variant="ghost" className="h-6 text-[9px] uppercase tracking-wider text-[#FFFFFF]/70 border border-[#3d3e51] hover:bg-[#40445a] hover:text-[#FFFFFF] rounded-none font-mono px-2 py-0 cursor-pointer">
-                  <Link href="/dashboard">
-                    <IconArrowLeft className="size-3 mr-1" />
-                    DASHBOARD
-                  </Link>
-                </Button>
-              </div>
-              <h1 className="mt-2 text-2xl font-bold uppercase tracking-wide text-[#FFFFFF] font-mono">
-                EXPLORE LIVE FORMS
-              </h1>
-              <p className="text-[10px] uppercase text-[#FFFFFF]/70 font-mono leading-relaxed">
-                Public forms are indexed here. Unlisted forms are not visible on the board and require direct links.
+    <main className="min-h-dvh bg-background px-4 py-6 md:px-6">
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 animate-in fade-in duration-300">
+        <header className="flex flex-col gap-4 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between">
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="outline" className="text-[10px]">
+                <IconWorld className="size-3" />
+                Public directory
+              </Badge>
+              <Button asChild size="sm" variant="ghost" className="h-8 cursor-pointer text-xs">
+                <Link href="/dashboard">
+                  <IconArrowLeft className="size-3.5" />
+                  Dashboard
+                </Link>
+              </Button>
+            </div>
+            <div>
+              <h1 className="text-2xl font-semibold tracking-tight">Explore Forms</h1>
+              <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+                Discover public forms from the HexForm community. Unlisted forms stay private unless shared directly.
               </p>
             </div>
-            
-            <div className="relative w-full lg:w-80">
-              <IconSearch className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#FFFFFF]/60" />
-              <Input
-                className="pl-9 bg-[#212129] border-[#3d3e51] text-[#FFFFFF] rounded-none text-xs focus-visible:ring-[#4c5265] uppercase placeholder:text-[#FFFFFF]/40"
-                placeholder="Search Active Forms..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
           </div>
-        </section>
+
+          <div className="relative w-full sm:w-80">
+            <IconSearch className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              className="pl-9"
+              placeholder="Search forms..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+        </header>
 
         {error ? (
-          <div className="border border-[#3d3e51] bg-[#323949] text-[#FFFFFF] p-3 text-xs uppercase font-mono rounded-[3px]">
+          <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
             {error.message}
           </div>
         ) : null}
 
-        {/* MISSIONS GRID */}
-        <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {isLoading ? (
             <GallerySkeleton />
           ) : filteredForms.length === 0 ? (
-            <div className="col-span-full val-card-red p-10 text-center space-y-3 shadow-[0_0_20px_rgba(76,82,101,0.05)]">
-              <h2 className="val-font-heading text-sm text-[#FFFFFF]">NO LIVE FORMS MATCH SEARCH</h2>
-              <p className="text-xs text-[#FFFFFF]/60 uppercase font-mono leading-relaxed max-w-sm mx-auto">
-                No active public forms meet your query criteria, or no users have created public forms yet.
+            <div className="col-span-full mx-auto w-full max-w-md rounded-xl border border-border bg-card p-12 text-center">
+              <IconFileText className="mx-auto size-12 text-muted-foreground" />
+              <h2 className="mt-4 text-base font-semibold">No Forms Found</h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                No public forms match your search yet. Create a form and enable its public listing to show it here.
               </p>
-              <Button asChild className="val-btn-red py-4 font-bold text-xs mt-3 cursor-pointer">
-                <Link href="/dashboard/forms">CREATE A NEW FORM</Link>
+              <Button asChild className="mt-5 cursor-pointer">
+                <Link href="/dashboard/forms">Create Form</Link>
               </Button>
             </div>
           ) : (
             filteredForms.map((form) => (
               <article
                 key={form.id}
-                className="val-card-red p-5 flex flex-col justify-between min-h-[190px] relative overflow-hidden group hover:scale-[1.02] hover:border-[#4c5265] hover:shadow-[0_0_20px_rgba(76,82,101,0.1)] transition duration-200"
+                className="flex min-h-[220px] flex-col justify-between rounded-xl border border-border bg-card p-5 transition-colors hover:border-zinc-700"
               >
-                <div className="absolute top-0 right-0 w-[40px] h-[40px] opacity-10 flex items-center justify-center translate-x-2 -translate-y-2 rotate-45 bg-[#4c5265]/10 select-none">
-                  <IconBolt className="size-4 text-[#FFFFFF]" />
-                </div>
-
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between gap-3 border-b border-[#3d3e51] pb-2">
-                    <Badge className="bg-[#4c5265] text-[#FFFFFF] border border-[#3d3e51] rounded-none uppercase text-[8px] tracking-widest px-2 py-0.5">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="default" className="text-[10px]">
+                      Public
+                    </Badge>
+                    <Badge variant="outline" className="text-[10px]">
                       {form.visibility}
                     </Badge>
-                    <span className="text-[9px] font-mono text-[#FFFFFF]/70">
-                      {form.submissionCount} RESPONSES
+                  </div>
+
+                  <div>
+                    <h2 className="line-clamp-1 text-base font-semibold tracking-tight">
+                      {form.title}
+                    </h2>
+                    <p className="mt-1 line-clamp-3 text-sm leading-6 text-muted-foreground">
+                      {stripHtml(form.description ?? "Active survey form ready for responses.")}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1.5">
+                      <IconUsers className="size-3.5" />
+                      {form.submissionCount} responses
                     </span>
                   </div>
-                  
-                  <h2 className="text-sm font-bold uppercase text-[#FFFFFF] tracking-wider truncate font-mono">
-                    {form.title}
-                  </h2>
-                  <p className="text-[10px] text-[#FFFFFF]/60 uppercase font-mono leading-relaxed line-clamp-3">
-                    {(form.description ?? "Active survey form ready for responses.").replace(/<[^>]*>/g, "")}
-                  </p>
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-[#3d3e51] flex items-center justify-between gap-3 text-[10px] font-mono">
-                  <span className="text-[#FFFFFF]">/{form.slug}</span>
-                  <Button asChild size="sm" className="val-btn-red h-8 text-[9px] uppercase px-4 py-0 hover:scale-[1.02] transition cursor-pointer">
+                <div className="mt-4 flex items-center justify-between gap-3 border-t border-border pt-3">
+                  <span className="min-w-0 truncate text-xs text-muted-foreground">/{form.slug}</span>
+                  <Button asChild size="sm" variant="outline" className="shrink-0 cursor-pointer text-xs">
                     <Link href={`/f/${form.slug}`}>
-                      <IconExternalLink className="size-3.5 mr-1" />
-                      OPEN FORM
+                      <IconExternalLink className="size-3.5" />
+                      Open
                     </Link>
                   </Button>
                 </div>
@@ -137,8 +144,24 @@ function GallerySkeleton() {
   return (
     <>
       {[1, 2, 3].map((item) => (
-        <div key={item} className="h-52 animate-pulse border border-[#3d3e51] bg-[#323949]/20 val-border-notch" />
+        <div key={item} className="rounded-xl border border-border bg-card p-5">
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-5 w-14 rounded-full" />
+            <Skeleton className="h-5 w-20 rounded-full" />
+          </div>
+          <Skeleton className="mt-6 h-5 w-3/4" />
+          <Skeleton className="mt-3 h-4 w-full" />
+          <Skeleton className="mt-2 h-4 w-5/6" />
+          <div className="mt-8 flex items-center justify-between border-t border-border pt-3">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-8 w-20 rounded-md" />
+          </div>
+        </div>
       ))}
     </>
   );
+}
+
+function stripHtml(value: string) {
+  return value.replace(/<[^>]*>/g, "").trim();
 }
