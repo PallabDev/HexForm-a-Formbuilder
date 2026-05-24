@@ -163,7 +163,7 @@ export function PublicFormClient({ slug }: { slug: string }) {
 
         if (isPreview) {
             setDone(true);
-            toast.success("PREVIEW SUBMISSION SIMULATED (DATABASE BYPASSED)");
+            toast.success("Preview submission simulated");
             return;
         }
 
@@ -177,7 +177,7 @@ export function PublicFormClient({ slug }: { slug: string }) {
                 })),
             });
             setDone(true);
-            toast.success("FORM RESPONSE SUBMITTED");
+            toast.success("Response submitted successfully!");
         } catch (mutationError) {
             toast.error(
                 mutationError instanceof Error ? mutationError.message : "Form response submission failed.",
@@ -187,15 +187,10 @@ export function PublicFormClient({ slug }: { slug: string }) {
 
     if (isLoading) {
         return (
-            <main className="val-dot-grid min-h-dvh flex items-center justify-center p-4">
+            <main className="min-h-dvh flex items-center justify-center p-4 bg-background">
                 <div className="text-center space-y-4">
-                    <div className="size-12 border-4 border-destructive/20 border-t-[#ff4655] rounded-full animate-spin mx-auto" />
-                    <h2 className="val-font-heading text-sm text-white tracking-widest">
-                        LOADING FORM...
-                    </h2>
-                    <p className="text-[10px] uppercase text-muted-foreground font-mono">
-                        Connecting to secure server
-                    </p>
+                    <div className="size-10 border-2 border-border border-t-foreground rounded-full animate-spin mx-auto" />
+                    <p className="text-sm text-muted-foreground">Loading form...</p>
                 </div>
             </main>
         );
@@ -203,15 +198,15 @@ export function PublicFormClient({ slug }: { slug: string }) {
 
     if (error || !form) {
         return (
-            <main className="val-dot-grid min-h-dvh flex items-center justify-center p-4">
-                <div className="val-card-red w-full p-6 text-center space-y-4">
-                    <IconAlertCircle className="size-12 text-[#ff4655] mx-auto animate-pulse" />
-                    <h2 className="val-font-heading text-lg text-white">FORM NOT ACCESSIBLE</h2>
-                    <p className="text-xs text-muted-foreground uppercase font-mono leading-relaxed">
+            <main className="min-h-dvh flex items-center justify-center p-4 bg-background">
+                <div className="bg-card border border-border w-full max-w-md p-6 text-center space-y-4 rounded-xl">
+                    <IconAlertCircle className="size-12 text-destructive mx-auto" />
+                    <h2 className="text-lg font-semibold">Form Not Available</h2>
+                    <p className="text-sm text-muted-foreground">
                         {error?.message ?? "This form is either closed, offline, or does not exist."}
                     </p>
-                    <Button asChild className="val-btn-cyan py-4 text-xs font-bold w-full mt-4">
-                        <Link href="/explore">RETURN HOME</Link>
+                    <Button asChild variant="outline" className="cursor-pointer">
+                        <Link href="/explore">Return Home</Link>
                     </Button>
                 </div>
             </main>
@@ -220,48 +215,43 @@ export function PublicFormClient({ slug }: { slug: string }) {
 
     if (done) {
         return (
-            <main className="val-dot-grid min-h-dvh flex items-center justify-center p-4">
-                <div className="val-card-cyan max-w-lg w-full p-6 text-center space-y-5">
-                    <IconCircleCheck className="size-14 text-[#00f0ff] mx-auto animate-pulse" />
+            <main className="min-h-dvh flex items-center justify-center p-4 bg-background">
+                <div className="bg-card border border-border max-w-lg w-full p-6 text-center space-y-5 rounded-xl animate-in zoom-in-95 duration-200">
+                    <IconCircleCheck className="size-14 text-emerald-400 mx-auto" />
                     <div>
-                        <h2 className="val-font-heading text-xl text-white tracking-widest">
-                            RESPONSE SUBMITTED
-                        </h2>
-                        <p className="text-[10px] uppercase text-muted-foreground font-mono mt-1">
-                            FORM SUBMISSION SECURED
+                        <h2 className="text-xl font-semibold">Response Submitted</h2>
+                        <p className="text-sm text-muted-foreground mt-1">
+                            Your response has been recorded successfully.
                         </p>
                     </div>
 
-                    <div className="border border-border/20 p-4 bg-black/40 text-left space-y-3 text-xs font-mono">
-                        <div className="border-b border-white/5 pb-2 text-[#00f0ff] font-bold">
-                            SUBMITTED ANSWERS:
-                        </div>
+                    <div className="border border-border p-4 bg-background text-left space-y-2 text-sm rounded-lg max-h-[300px] overflow-y-auto">
                         {form.fields.map((f, idx) => {
                             const val = answers[f.labelKey];
-                            let displayVal = "Empty / Optional";
+                            let displayVal = "Empty";
                             if (val !== undefined && val !== null && val !== "") {
-                                displayVal = Array.isArray(val) ? val.join(", ") : String(val);
+                                    displayVal = Array.isArray(val) ? val.join(", ") : String(val);
                             }
                             return (
-                                <div key={f.id} className="flex justify-between gap-4">
-                                    <span className="text-muted-foreground uppercase">
-                                        {idx + 1}. {f.label}:
+                                <div key={f.id} className="flex justify-between gap-4 py-1.5 border-b border-border/50 last:border-0">
+                                    <span className="text-muted-foreground text-xs truncate max-w-[200px]">
+                                        {idx + 1}. {f.label}
                                     </span>
-                                    <span className="text-white font-bold max-w-[200px] truncate">{displayVal}</span>
+                                    <span className="font-medium text-xs text-right max-w-[220px] break-all">{displayVal}</span>
                                 </div>
                             );
                         })}
                     </div>
 
-                    <p className="text-xs text-muted-foreground uppercase font-mono leading-normal">
-                        Your response has been recorded. You can now close this tab.
+                    <p className="text-xs text-muted-foreground">
+                        You can now close this tab.
                     </p>
                 </div>
             </main>
         );
     }
 
-    // Calculate mission progress percentage
+    // Calculate progress percentage
     const totalSteps = form.fields.length;
     const progressPercent = Math.min(
         Math.round(((currentStep + 1) / (totalSteps + 1)) * 100),
@@ -269,121 +259,83 @@ export function PublicFormClient({ slug }: { slug: string }) {
     );
 
     return (
-        <main className="val-dot-grid min-h-dvh flex flex-col justify-between p-4 md:p-6" onKeyDown={handleKeyDown}>
-            {/* PREVIEW BANNER */}
+        <main className="min-h-dvh flex flex-col justify-between p-4 md:p-6 bg-background" onKeyDown={handleKeyDown}>
+            {/* Preview Banner */}
             {isPreview && (
-                <div className="bg-[#334155]/20 border border-[#475569]/40 text-[#f8fafc] text-[10px] font-mono tracking-widest text-center py-2.5 uppercase max-w-4xl w-full mx-auto mb-4 animate-pulse">
-                    Preview Mode // Responses will not affect live database records
+                <div className="bg-amber-500/10 text-amber-400 text-xs text-center py-2.5 max-w-4xl w-full mx-auto mb-4 rounded-lg border border-amber-500/20">
+                    Preview Mode — Responses will not be saved
                 </div>
             )}
 
-            {/* HEADER PANEL */}
-            <header className="flex items-center justify-between border-b border-border/20 pb-3 max-w-4xl w-full mx-auto font-mono">
-                <div className="flex items-center gap-2">
-                    <div className="size-2 bg-[#ff4655] animate-ping" />
-                    <span className="val-font-heading text-xs text-white tracking-widest">
-                        {form.title}
-                    </span>
-                </div>
-                <Badge
-                    className="rounded-none bg-[#ff4655]/10 text-[#ff4655] border-[#ff4655]/40 text-[9px] uppercase px-2 font-mono"
-                    variant="outline"
-                >
+            {/* Header */}
+            <header className="flex items-center justify-between border-b border-border pb-3 max-w-4xl w-full mx-auto">
+                <span className="text-sm font-medium truncate">{form.title}</span>
+                <Badge variant="outline" className="text-[10px]">
                     <IconLock className="size-3 mr-1" />
-                    SECURE DATA ENTRY
+                    Secure
                 </Badge>
             </header>
 
-            {/* CORE WORKSPACE SLIDES */}
+            {/* Core Slides */}
             <section className="flex-1 flex items-center justify-center max-w-3xl w-full mx-auto py-8">
                 <div className="w-full transition-all duration-300">
 
-                    {/* Slide -1: Welcome and Email Ingestion */}
+                    {/* Welcome Slide */}
                     {currentStep === -1 && (
-                        <div className="val-card-red p-6 md:p-8 space-y-6 animate-in fade-in zoom-in-95 duration-200">
+                        <div className="bg-card border border-border p-6 md:p-8 space-y-6 animate-in fade-in zoom-in-95 duration-200 rounded-xl">
                             <div className="space-y-3">
-                                <Badge className="bg-[#ff4655]/15 text-[#ff4655] border-[#ff4655]/40 rounded-none uppercase text-[10px] tracking-widest px-2.5 py-0.5">
-                                    FORM SHEETS
-                                </Badge>
-                                <h1 className="text-3xl font-extrabold uppercase text-white tracking-wide leading-tight">
-                                    {form.title}
-                                </h1>
+                                <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{form.title}</h1>
                                 {form.description && (
-                                    <p className="text-sm text-muted-foreground uppercase leading-relaxed font-mono">
-                                        {form.description}
-                                    </p>
+                                    <div
+                                        className="text-sm text-muted-foreground leading-relaxed prose prose-invert max-w-none border border-border p-4 rounded-lg bg-background"
+                                        dangerouslySetInnerHTML={{ __html: form.description }}
+                                    />
                                 )}
                             </div>
 
-                            <div className="border-t border-destructive/20 pt-4 space-y-4">
-                                <div className="space-y-1.5">
-                                    <label
-                                        htmlFor="receipt-email"
-                                        className="text-[10px] uppercase font-mono tracking-widest text-[#ff4655] block"
-                                    >
-                                        Your Email Address (Optional)
-                                    </label>
-                                    <Input
-                                        id="receipt-email"
-                                        type="email"
-                                        placeholder="email@example.com"
-                                        value={respondentEmail}
-                                        onChange={(e) => setRespondentEmail(e.target.value)}
-                                        ref={activeInputRef as any}
-                                        className="bg-[#0f1218] border-border/40 text-white rounded-none text-xs focus-visible:ring-[#ff4655]"
-                                    />
-                                    <span className="text-[9px] uppercase font-mono text-muted-foreground">
-                                        Used to send a copy of your submission.
-                                    </span>
-                                </div>
-
+                            <div className="border-t border-border pt-4 space-y-4">
                                 {errorMessage && (
-                                    <div className="text-[#ff4655] text-xs font-mono uppercase bg-[#ff4655]/10 p-3 border border-[#ff4655]/30">
+                                    <div className="text-destructive text-xs bg-destructive/10 p-3 border border-destructive/20 rounded-lg">
                                         {errorMessage}
                                     </div>
                                 )}
 
-                                <Button
-                                    onClick={handleNext}
-                                    className="val-btn-red py-6 text-xs font-bold w-full sm:w-auto px-8 gap-2 justify-center"
-                                >
-                                    START FORM
-                                    <IconArrowRight className="size-4 animate-bounce" style={{ animationDirection: 'normal', animationDuration: '1.5s' }} />
+                                <Button onClick={handleNext} className="py-5 px-6 cursor-pointer">
+                                    Start Form
+                                    <IconArrowRight className="size-4 ml-2" />
                                 </Button>
                             </div>
                         </div>
                     )}
 
-                    {/* Slide index: Question Steps */}
+                    {/* Question Steps */}
                     {form.fields.map((field, idx) => {
                         if (idx !== currentStep) return null;
                         return (
                             <div
                                 key={field.id}
-                                className="val-card-cyan p-6 md:p-8 space-y-5 animate-in slide-in-from-right fade-in duration-200"
+                                className="bg-card border border-border p-6 md:p-8 space-y-5 animate-in slide-in-from-right fade-in duration-200 rounded-xl"
                             >
                                 <div className="space-y-2">
                                     <div className="flex items-center justify-between">
-                                        <span className="font-mono text-[10px] text-[#00f0ff] font-bold">
-                                            QUESTION {String(idx + 1).padStart(2, "0")} OF {String(totalSteps).padStart(2, "0")}
+                                        <span className="text-xs text-muted-foreground">
+                                            Question {idx + 1} of {totalSteps}
                                         </span>
-                                        <Badge className="bg-white/5 text-muted-foreground rounded-none uppercase text-[9px] px-2 font-mono border-none">
-                                            {field.isRequired ? "MANDATORY" : "OPTIONAL"}
+                                        <Badge variant="secondary" className="text-[10px]">
+                                            {field.isRequired ? "Required" : "Optional"}
                                         </Badge>
                                     </div>
 
-                                    <h2 className="text-xl md:text-2xl font-bold uppercase tracking-wide text-white">
+                                    <h2 className="text-xl md:text-2xl font-semibold tracking-tight">
                                         {field.label}
                                     </h2>
 
                                     {field.description && (
-                                        <p className="text-xs text-muted-foreground font-mono uppercase leading-relaxed">
-                                            {field.description}
-                                        </p>
+                                        <p className="text-sm text-muted-foreground">{field.description}</p>
                                     )}
                                 </div>
 
-                                <div className="border-t border-[#00f0ff]/20 pt-4 space-y-3">
+                                <div className="border-t border-border pt-4 space-y-3">
                                     <FieldControl
                                         field={field}
                                         value={answers[field.labelKey] ?? null}
@@ -394,27 +346,19 @@ export function PublicFormClient({ slug }: { slug: string }) {
                                     />
 
                                     {errorMessage && (
-                                        <div className="text-[#ff4655] text-xs font-mono uppercase bg-[#ff4655]/10 p-3 border border-[#ff4655]/30">
+                                        <div className="text-destructive text-xs bg-destructive/10 p-3 border border-destructive/20 rounded-lg">
                                             {errorMessage}
                                         </div>
                                     )}
 
-                                    <div className="flex items-center justify-between pt-4 text-[10px] font-mono text-muted-foreground border-t border-white/5">
-                                        <span>Press ENTER ↵ to proceed</span>
+                                    <div className="flex items-center justify-between pt-4 text-xs text-muted-foreground border-t border-border">
+                                        <span>Press Enter ↵ to continue</span>
                                         <div className="flex gap-2">
-                                            <Button
-                                                size="sm"
-                                                onClick={handleBack}
-                                                className="bg-transparent border border-border text-white hover:bg-white/5 rounded-none text-[9px] uppercase px-3 py-1"
-                                            >
+                                            <Button size="sm" variant="outline" onClick={handleBack} className="cursor-pointer">
                                                 <IconChevronLeft className="size-3 mr-1" />
                                                 Back
                                             </Button>
-                                            <Button
-                                                size="sm"
-                                                onClick={handleNext}
-                                                className="val-btn-cyan text-[9px] uppercase px-4 py-1"
-                                            >
+                                            <Button size="sm" onClick={handleNext} className="cursor-pointer">
                                                 Next
                                                 <IconChevronRight className="size-3 ml-1" />
                                             </Button>
@@ -425,37 +369,32 @@ export function PublicFormClient({ slug }: { slug: string }) {
                         );
                     })}
 
-                    {/* Slide Final: Review & Submit */}
+                    {/* Review & Submit */}
                     {currentStep === totalSteps && (
-                        <div className="val-card-red p-6 md:p-8 space-y-6 animate-in slide-in-from-right fade-in duration-200">
-                            <div className="space-y-3">
-                                <Badge className="bg-[#ff4655]/15 text-[#ff4655] border-[#ff4655]/40 rounded-none uppercase text-[10px] tracking-widest px-2.5 py-0.5">
-                                    SUBMISSION SUMMARY
-                                </Badge>
-                                <h2 className="text-2xl font-extrabold uppercase text-white tracking-wide">
-                                    REVIEW AND SUBMIT
-                                </h2>
-                                <p className="text-xs text-muted-foreground uppercase leading-relaxed font-mono">
+                        <div className="bg-card border border-border p-6 md:p-8 space-y-6 animate-in slide-in-from-right fade-in duration-200 rounded-xl">
+                            <div className="space-y-2">
+                                <h2 className="text-2xl font-semibold tracking-tight">Review & Submit</h2>
+                                <p className="text-sm text-muted-foreground">
                                     Please review your answers before submitting.
                                 </p>
                             </div>
 
-                            <div className="border-t border-destructive/20 pt-4 space-y-3 max-h-[300px] overflow-y-auto pr-2">
+                            <div className="border-t border-border pt-4 space-y-2 max-h-[300px] overflow-y-auto pr-2">
                                 {form.fields.map((f, i) => {
                                     const rawVal = answers[f.labelKey];
-                                    let displayVal = "[EMPTY / OPTIONAL]";
+                                    let displayVal = "Empty";
                                     if (rawVal !== undefined && rawVal !== null && rawVal !== "") {
                                         displayVal = Array.isArray(rawVal) ? rawVal.join(", ") : String(rawVal);
                                     }
                                     return (
                                         <div
                                             key={f.id}
-                                            className="flex justify-between items-start gap-4 p-2 bg-black/20 border border-white/5 text-xs font-mono"
+                                            className="flex justify-between items-start gap-4 p-3 bg-background border border-border rounded-lg text-sm"
                                         >
-                                            <span className="text-muted-foreground uppercase truncate max-w-[200px]">
+                                            <span className="text-muted-foreground text-xs truncate max-w-[200px]">
                                                 {i + 1}. {f.label}
                                             </span>
-                                            <span className="text-[#00f0ff] font-bold text-right max-w-[220px] break-all">
+                                            <span className="font-medium text-xs text-right max-w-[220px] break-all">
                                                 {displayVal}
                                             </span>
                                         </div>
@@ -464,21 +403,17 @@ export function PublicFormClient({ slug }: { slug: string }) {
                             </div>
 
                             <div className="pt-2 flex flex-col sm:flex-row gap-3">
-                                <Button
-                                    onClick={handleBack}
-                                    className="bg-transparent hover:bg-white/5 border border-border text-white rounded-none py-6 text-xs uppercase w-full sm:w-auto px-6 font-bold"
-                                >
-                                    <IconChevronLeft className="size-4" />
-                                    GO BACK
+                                <Button onClick={handleBack} variant="outline" className="py-5 cursor-pointer">
+                                    <IconChevronLeft className="size-4 mr-1" />
+                                    Go Back
                                 </Button>
-
                                 <Button
                                     onClick={handleSubmit}
                                     disabled={submitForm.isPending}
-                                    className="val-btn-red py-6 text-xs font-bold flex-1 gap-2 justify-center"
+                                    className="py-5 flex-1 cursor-pointer"
                                 >
-                                    <IconSend className="size-4" />
-                                    SUBMIT RESPONSE
+                                    <IconSend className="size-4 mr-2" />
+                                    Submit Response
                                 </Button>
                             </div>
                         </div>
@@ -487,15 +422,15 @@ export function PublicFormClient({ slug }: { slug: string }) {
                 </div>
             </section>
 
-            {/* PROGRESS BAR */}
-            <footer className="max-w-4xl w-full mx-auto space-y-2 border-t border-border/20 pt-4">
-                <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground uppercase tracking-widest">
-                    <span>PROGRESS: {progressPercent}%</span>
-                    <span>ONLINE</span>
+            {/* Progress Bar */}
+            <footer className="max-w-4xl w-full mx-auto space-y-2 border-t border-border pt-4">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>{progressPercent}% complete</span>
+                    <span>{currentStep + 1} / {totalSteps + 1}</span>
                 </div>
-                <div className="w-full h-1 bg-white/5 border border-white/10 relative">
+                <div className="w-full h-1 bg-muted rounded-full overflow-hidden">
                     <div
-                        className="h-full bg-gradient-to-r from-[#ff4655] to-[#00f0ff] transition-all duration-300 shadow-[0_0_8px_rgba(0,240,255,0.4)]"
+                        className="h-full bg-foreground transition-all duration-300 rounded-full"
                         style={{ width: `${progressPercent}%` }}
                     />
                 </div>
@@ -524,7 +459,7 @@ function FieldControl({
                 onChange={(event) => onChange(event.target.value)}
                 ref={inputRef as any}
                 rows={5}
-                className="bg-[#0f1218] border-border/40 text-white rounded-none text-sm focus-visible:ring-[#00f0ff] uppercase"
+                className="text-sm"
             />
         );
     }
@@ -555,18 +490,26 @@ function FieldControl({
                         <button
                             key={option.id}
                             onClick={() => toggleOption(option.value)}
-                            className={`group flex items-center justify-between p-3 border transition text-left select-none rounded-none text-xs font-mono uppercase ${isSelected
-                                ? "border-[#00f0ff] bg-[#00f0ff]/10 text-white"
-                                : "border-border/30 bg-black/20 text-muted-foreground hover:bg-white/5 hover:text-white"
-                                }`}
+                            className={`flex items-center justify-between p-3 border transition text-left text-sm rounded-lg cursor-pointer ${
+                                isSelected
+                                    ? "border-foreground bg-foreground/10 text-foreground"
+                                    : "border-border bg-background text-muted-foreground hover:border-zinc-600 hover:text-foreground"
+                            }`}
                             type="button"
                         >
                             <span>{option.label}</span>
                             <div
-                                className={`size-4 border flex items-center justify-center ${isSelected ? "border-[#00f0ff] bg-[#00f0ff]" : "border-border/40"
-                                    }`}
+                                className={`size-4 border flex items-center justify-center transition-all ${
+                                    isMultiple
+                                        ? `${isSelected ? "border-foreground bg-foreground" : "border-zinc-600"} rounded`
+                                        : `${isSelected ? "border-foreground bg-foreground" : "border-zinc-600"} rounded-full`
+                                }`}
                             >
-                                {isSelected && <IconCheck className="size-3 text-black font-bold" />}
+                                {isSelected && (
+                                    isMultiple
+                                        ? <IconCheck className="size-3 text-background font-bold" />
+                                        : <div className="size-1.5 bg-background rounded-full" />
+                                )}
                             </div>
                         </button>
                     );
@@ -580,19 +523,21 @@ function FieldControl({
         return (
             <button
                 onClick={() => onChange(!activeVal)}
-                className={`w-full flex items-center gap-3 p-4 border transition text-left rounded-none text-xs font-mono uppercase ${activeVal
-                    ? "border-[#00f0ff] bg-[#00f0ff]/10 text-white"
-                    : "border-border/30 bg-black/20 text-muted-foreground hover:bg-white/5 hover:text-white"
-                    }`}
+                className={`w-full flex items-center gap-3 p-4 border transition text-left text-sm rounded-lg cursor-pointer ${
+                    activeVal
+                        ? "border-foreground bg-foreground/10 text-foreground"
+                        : "border-border bg-background text-muted-foreground hover:border-zinc-600 hover:text-foreground"
+                }`}
                 type="button"
             >
                 <div
-                    className={`size-5 border flex items-center justify-center ${activeVal ? "border-[#00f0ff] bg-[#00f0ff]" : "border-border/40"
-                        }`}
+                    className={`size-5 border flex items-center justify-center transition-all ${
+                        activeVal ? "border-foreground bg-foreground" : "border-zinc-600"
+                    } rounded`}
                 >
-                    {activeVal && <IconCheck className="size-4 text-black font-bold" />}
+                    {activeVal && <IconCheck className="size-4 text-background font-bold" />}
                 </div>
-                <span>{field.type === "YES_NO" ? "YES" : "CONFIRM SELECTION"}</span>
+                <span>{field.type === "YES_NO" ? "Yes" : "Confirm"}</span>
             </button>
         );
     }
@@ -607,13 +552,14 @@ function FieldControl({
                         <button
                             key={rating}
                             onClick={() => onChange(rating)}
-                            className={`size-12 border flex items-center justify-center transition-all ${isActive
-                                ? "border-[#00f0ff] bg-[#00f0ff]/15 text-[#00f0ff] shadow-[0_0_8px_rgba(0,240,255,0.2)]"
-                                : "border-border/30 bg-black/20 text-muted-foreground hover:border-[#00f0ff]/50 hover:text-white"
-                                }`}
+                            className={`size-12 border flex items-center justify-center transition-all rounded-lg cursor-pointer ${
+                                isActive
+                                    ? "border-amber-400 bg-amber-400/10 text-amber-400"
+                                    : "border-border bg-background text-muted-foreground hover:border-zinc-600 hover:text-foreground"
+                            }`}
                             type="button"
                         >
-                            <IconStar className={`size-6 ${isActive ? "fill-[#00f0ff]" : ""}`} />
+                            <IconStar className={`size-6 ${isActive ? "fill-amber-400 text-amber-400" : ""}`} />
                         </button>
                     );
                 })}
@@ -626,12 +572,12 @@ function FieldControl({
             id={field.labelKey}
             type={
                 field.type === "EMAIL"
-                    ? "email"
-                    : field.type === "NUMBER"
-                        ? "number"
-                        : field.type === "DATE"
-                            ? "date"
-                            : "text"
+                     ? "email"
+                     : field.type === "NUMBER"
+                         ? "number"
+                         : field.type === "DATE"
+                             ? "date"
+                             : "text"
             }
             placeholder={field.placeholder ?? "Type your answer here..."}
             value={typeof value === "string" || typeof value === "number" ? value : ""}
@@ -640,7 +586,7 @@ function FieldControl({
                 onChange(nextValue);
             }}
             ref={inputRef as any}
-            className="bg-[#0f1218] border-border/40 text-white rounded-none text-sm focus-visible:ring-[#00f0ff] uppercase"
+            className="text-sm"
         />
     );
 }

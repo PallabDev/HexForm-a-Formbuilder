@@ -1,26 +1,38 @@
 "use client";
 
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import type { RouterInputs, RouterOutputs } from "@repo/trpc/client";
+import {
+    DndContext,
+    closestCenter,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    DragEndEvent,
+} from "@dnd-kit/core";
+import {
+    arrayMove,
+    SortableContext,
+    sortableKeyboardCoordinates,
+    verticalListSortingStrategy,
+    useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import {
     IconPlus,
     IconEye,
-    IconCopy,
     IconTrash,
-    IconArrowUp,
-    IconArrowDown,
     IconArrowLeft,
     IconSettings,
-    IconChartBar,
     IconCheck,
     IconLoader,
     IconAlertCircle,
-    IconDownload,
     IconX,
-    IconClick,
-    IconSend,
-    IconFileText,
+    IconGripVertical,
+    IconDeviceFloppy,
+    IconEdit,
 } from "@tabler/icons-react";
 import { toast } from "sonner";
 
@@ -35,23 +47,30 @@ import {
     SelectTrigger,
     SelectValue,
 } from "~/components/ui/select";
-import { Textarea } from "~/components/ui/textarea";
 import { Switch } from "~/components/ui/switch";
 import {
     useCreateField,
-    useCreateForm,
     useForm,
-    useMyForms,
     usePublishForm,
     useUnpublishForm,
     useUpdateForm,
     useUpdateField,
     useDeleteField,
     useReorderFields,
-    useFormAnalytics,
-    useFormResponses,
-    useArchiveForm,
 } from "~/hooks/api/forms";
+import type { RouterInputs } from "@repo/trpc/client";
+import { TiptapEditor } from "~/components/ui/tiptap-editor";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "~/components/ui/alert-dialog";
 
 type FieldType = RouterInputs["form"]["createField"]["type"];
 type SelectMode = RouterInputs["form"]["createField"]["selectMode"];
@@ -69,32 +88,13 @@ const fieldTypes: Array<{ value: FieldType; label: string }> = [
     { value: "YES_NO", label: "Yes / No Toggle" },
 ];
 
-export function FormBuilderConsole() {
-    const { forms, isLoading, error, refetch: refetchForms } = useMyForms({ limit: 50 });
-    const [selectedId, setSelectedId] = useState("");
+interface FormBuilderConsoleProps {
+    formId: string;
+}
 
-    // Read query params for formId navigation
-    useEffect(() => {
-        if (typeof window !== "undefined") {
-            const formIdParam = new URLSearchParams(window.location.search).get("formId");
-            if (formIdParam) {
-                setSelectedId(formIdParam);
-            }
-        }
-    }, [forms]);
+export function FormBuilderConsole({ formId }: FormBuilderConsoleProps) {
+    const { form, isLoading: isFormLoading, error: formError, refetch } = useForm(formId);
 
-    const activeForms = useMemo(() => forms.filter((f) => f.status !== "ARCHIVED"), [forms]);
-
-    const activeFormId = selectedId;
-
-    const {
-        form,
-        error: formError,
-        isLoading: isFormLoading,
-        refetch: refetchActiveForm,
-    } = useForm(activeFormId, Boolean(activeFormId));
-
-    const createForm = useCreateForm();
     const updateForm = useUpdateForm();
     const publishForm = usePublishForm();
     const unpublishForm = useUnpublishForm();
@@ -102,22 +102,16 @@ export function FormBuilderConsole() {
     const updateField = useUpdateField();
     const deleteField = useDeleteField();
     const reorderFields = useReorderFields();
-    const archiveForm = useArchiveForm();
 
-    // Integrated Analytics / Submissions
-    const { analytics } = useFormAnalytics(activeFormId, Boolean(activeFormId));
-    const { responses } = useFormResponses({ formId: activeFormId, limit: 100 }, Boolean(activeFormId));
-
-    // Workspace View State
-    const [activeTab, setActiveTab] = useState<"builder" | "analytics">("builder");
     const [draftTitle, setDraftTitle] = useState("");
     const [draftDescription, setDraftDescription] = useState("");
     const [draftVisibility, setDraftVisibility] = useState<"PUBLIC" | "UNLISTED">("UNLISTED");
+    const [draftLimit, setDraftLimit] = useState<number>(100);
     const [syncStatus, setSyncStatus] = useState<"SYNCED" | "SYNCING" | "ERROR">("SYNCED");
 
     // Popup Modal States for Field Editor
     const [isFieldModalOpen, setIsFieldModalOpen] = useState(false);
-    const [editingFieldId, setEditingFieldId] = useState<string | null>(null); // null = Creating a new field
+    const [editingFieldId, setEditingFieldId] = useState<string | null>(null);
 
     // Field values inside Modal
     const [fieldLabel, setFieldLabel] = useState("");
@@ -139,35 +133,59 @@ export function FormBuilderConsole() {
             setDraftTitle(form.title);
             setDraftDescription(form.description ?? "");
             setDraftVisibility(form.visibility);
+            setDraftLimit(form.submissionLimit ?? 100);
         }
     }, [form]);
 
-    // Default back to builder tab when form changes
-    useEffect(() => {
-        setActiveTab("builder");
-        setIsFieldModalOpen(false);
-        setEditingFieldId(null);
-    }, [activeFormId]);
+    // Sensors for drag-and-drop to prevent blocking simple clicks on inputs/buttons
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 8,
+            },
+        }),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
 
-    // Debounced Auto-Save for Title & Description
+    // Debounced Auto-Save
     const autoSaveTimeout = useRef<NodeJS.Timeout | null>(null);
 
     const handleMetadataChange = (updatedFields: {
         title?: string;
         description?: string;
         visibility?: "PUBLIC" | "UNLISTED";
+        submissionLimit?: number;
     }) => {
         setSyncStatus("SYNCING");
         if (autoSaveTimeout.current) clearTimeout(autoSaveTimeout.current);
 
         autoSaveTimeout.current = setTimeout(async () => {
-            if (!activeFormId) return;
+            if (!formId) return;
             try {
+                const titleToSave = updatedFields.title !== undefined ? updatedFields.title : draftTitle;
+
+                // Graceful empty title auto-save logic
+                if (titleToSave.trim().length === 0) {
+                    const payload: any = { id: formId };
+                    if (updatedFields.description !== undefined) payload.description = updatedFields.description;
+                    if (updatedFields.visibility !== undefined) payload.visibility = updatedFields.visibility;
+                    if (updatedFields.submissionLimit !== undefined) payload.submissionLimit = updatedFields.submissionLimit;
+
+                    if (Object.keys(payload).length > 1) {
+                        await updateForm.mutateAsync(payload);
+                    }
+                    setSyncStatus("SYNCED");
+                    return;
+                }
+
                 await updateForm.mutateAsync({
-                    id: activeFormId,
-                    title: updatedFields.title ?? draftTitle,
+                    id: formId,
+                    title: titleToSave,
                     description: updatedFields.description ?? draftDescription,
                     visibility: updatedFields.visibility ?? draftVisibility,
+                    submissionLimit: updatedFields.submissionLimit ?? draftLimit,
                 });
                 setSyncStatus("SYNCED");
             } catch (err) {
@@ -177,19 +195,21 @@ export function FormBuilderConsole() {
         }, 800);
     };
 
-    const handleVisibilityChange = async (value: "PUBLIC" | "UNLISTED") => {
-        setDraftVisibility(value);
+    const handlePublishStatusChange = async (status: "PUBLISHED" | "DRAFT") => {
         setSyncStatus("SYNCING");
         try {
-            await updateForm.mutateAsync({
-                id: activeFormId,
-                visibility: value,
-            });
+            if (status === "PUBLISHED") {
+                await publishForm.mutateAsync({ id: formId, visibility: draftVisibility });
+                toast.success("Form status updated to Public");
+            } else {
+                await unpublishForm.mutateAsync({ id: formId });
+                toast.success("Form status updated to Draft");
+            }
             setSyncStatus("SYNCED");
-            toast.success(`Visibility updated to ${value}`);
+            await refetch();
         } catch (err) {
             setSyncStatus("ERROR");
-            toast.error("Failed to auto-save visibility");
+            toast.error("Failed to update form status");
         }
     };
 
@@ -198,7 +218,7 @@ export function FormBuilderConsole() {
         setEditingFieldId(null);
         setFieldLabel("New Question Prompt");
         setFieldType("TEXT");
-        setFieldPlaceholder("Enter response here...");
+        setFieldPlaceholder("e.g. Jane Doe");
         setFieldIsRequired(true);
         setFieldSelectMode("SINGLE");
         setFieldOptions([]);
@@ -226,6 +246,25 @@ export function FormBuilderConsole() {
         setValidationMaxLength(val?.maxLength);
 
         setIsFieldModalOpen(true);
+    };
+
+    const handleTypeChange = (type: FieldType) => {
+        setFieldType(type);
+        if (type === "TEXT") {
+            setFieldPlaceholder("e.g. Jane Doe");
+        } else if (type === "EMAIL") {
+            setFieldPlaceholder("jane.doe@example.com");
+        } else if (type === "LONG_TEXT") {
+            setFieldPlaceholder("Type your detailed response here...");
+        } else if (type === "NUMBER") {
+            setFieldPlaceholder("e.g. 25");
+        } else if (type === "FILE_URL") {
+            setFieldPlaceholder("Upload link (e.g. Dropbox, Drive)");
+        } else if (type === "RATING") {
+            setFieldPlaceholder("1-5 rating");
+        } else {
+            setFieldPlaceholder("");
+        }
     };
 
     // Save changes inside Modal (Done clicked)
@@ -271,10 +310,11 @@ export function FormBuilderConsole() {
                     validation,
                     order: form.fields.length,
                 });
-                toast.success("New question added to workspace");
+                toast.success("New question added");
             }
             setSyncStatus("SYNCED");
             setIsFieldModalOpen(false);
+            await refetch();
         } catch (err) {
             setSyncStatus("ERROR");
             toast.error(err instanceof Error ? err.message : "Failed to save question");
@@ -284,7 +324,6 @@ export function FormBuilderConsole() {
     // Delete question
     const handleDeleteField = async (fieldId: string) => {
         if (!form) return;
-        if (!confirm("Are you sure you want to delete this question?")) return;
 
         setSyncStatus("SYNCING");
         try {
@@ -294,351 +333,129 @@ export function FormBuilderConsole() {
             });
             setSyncStatus("SYNCED");
             toast.success("Question deleted");
+            await refetch();
         } catch (err) {
             setSyncStatus("ERROR");
             toast.error(err instanceof Error ? err.message : "Failed to delete question");
         }
     };
 
-    // Reordering questions
-    const handleReorderUp = async (index: number) => {
-        if (!form || index <= 0) return;
-        setSyncStatus("SYNCING");
+    // Drag-and-drop horizontal swap reordering event handler
+    const handleDragEnd = async (event: DragEndEvent) => {
+        const { active, over } = event;
+        if (!over || !form) return;
 
-        const newFields = [...form.fields];
-        const temp = newFields[index];
-        newFields[index] = newFields[index - 1]!;
-        newFields[index - 1] = temp!;
+        if (active.id !== over.id) {
+            const oldIndex = form.fields.findIndex((f) => f.id === active.id);
+            const newIndex = form.fields.findIndex((f) => f.id === over.id);
 
-        try {
-            await reorderFields.mutateAsync({
-                formId: form.id,
-                fieldIds: newFields.map((f) => f.id),
-            });
-            setSyncStatus("SYNCED");
-        } catch (err) {
-            setSyncStatus("ERROR");
-            toast.error("Failed to reorder questions");
-        }
-    };
-
-    const handleReorderDown = async (index: number) => {
-        if (!form || index >= form.fields.length - 1) return;
-        setSyncStatus("SYNCING");
-
-        const newFields = [...form.fields];
-        const temp = newFields[index];
-        newFields[index] = newFields[index + 1]!;
-        newFields[index + 1] = temp!;
-
-        try {
-            await reorderFields.mutateAsync({
-                formId: form.id,
-                fieldIds: newFields.map((f) => f.id),
-            });
-            setSyncStatus("SYNCED");
-        } catch (err) {
-            setSyncStatus("ERROR");
-            toast.error("Failed to reorder questions");
-        }
-    };
-
-    // Registry form actions
-    const handleCreateForm = async () => {
-        try {
-            const created = await createForm.mutateAsync({
-                title: "Untitled Survey Sheet",
-                description: "Configure your minimal forms workspace details here.",
-                visibility: "UNLISTED",
-                submissionLimit: 100,
-                fields: [
-                    {
-                        label: "Your Full Name",
-                        type: "TEXT",
-                        order: 0,
-                        isRequired: true,
-                    },
-                ],
-            });
-            setSelectedId(created.id);
-            setActiveTab("builder");
-            toast.success("New survey workspace launched");
-            await refetchForms();
-        } catch (err) {
-            toast.error(err instanceof Error ? err.message : "Failed to create form");
-        }
-    };
-
-    const handleArchiveForm = async (id: string) => {
-        if (!confirm("Are you sure you want to delete this form?")) return;
-        try {
-            await archiveForm.mutateAsync({ id });
-            toast.success("Form deleted successfully");
-            if (selectedId === id) {
-                setSelectedId("");
+            const reordered = arrayMove(form.fields, oldIndex, newIndex);
+            setSyncStatus("SYNCING");
+            try {
+                await reorderFields.mutateAsync({
+                    formId: form.id,
+                    fieldIds: reordered.map((f) => f.id),
+                });
+                setSyncStatus("SYNCED");
+                toast.success("Questions reordered");
+                await refetch();
+            } catch (err) {
+                setSyncStatus("ERROR");
+                toast.error("Failed to reorder questions");
             }
-            await refetchForms();
-        } catch (err) {
-            toast.error(err instanceof Error ? err.message : "Failed to delete form");
         }
     };
 
-    const handlePublish = async () => {
-        if (!form) return;
-        try {
-            await publishForm.mutateAsync({ id: form.id, visibility: draftVisibility });
-            toast.success("Form live link generated successfully!");
-        } catch (err) {
-            toast.error(err instanceof Error ? err.message : "Failed to publish");
-        }
-    };
-
-    const handleUnpublish = async () => {
-        if (!form) return;
-        try {
-            await unpublishForm.mutateAsync({ id: form.id });
-            toast.success("Form offline draft status updated");
-            setActiveTab("builder");
-        } catch (err) {
-            toast.error(err instanceof Error ? err.message : "Failed to unpublish");
-        }
-    };
-
-    const copyShareLink = () => {
-        if (!form) return;
-        const link = `${window.location.origin}/f/${form.slug}`;
-        void navigator.clipboard.writeText(link);
-        toast.success("Link copied to clipboard!");
-    };
-
-    const handleCsvExport = () => {
-        if (!form || responses.length === 0) return;
-
-        const headers = ["submittedAt", "respondentEmail", ...form.fields.map((f) => f.labelKey)];
-        const rows = responses.map((res) => {
-            const answerMap = new Map(res.answers.map((a) => [a.fieldKey, a.value]));
-            return [
-                res.submittedAt ?? "",
-                res.respondentEmail ?? "anonymous",
-                ...form.fields.map((f) => {
-                    const val = answerMap.get(f.labelKey);
-                    if (val === undefined || val === null) return "";
-                    return Array.isArray(val) ? `"${val.join(", ")}"` : `"${String(val).replace(/"/g, '""')}"`;
-                }),
-            ];
-        });
-
-        const csvContent = [headers.join(","), ...rows.map((row) => row.join(","))].join("\n");
-        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.setAttribute("href", url);
-        link.setAttribute("download", `responses_${form.slug}_export.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        toast.success("Detailed CSV data exported successfully!");
-    };
-
-    if (isLoading) {
+    if (isFormLoading) {
         return (
-            <main className="val-dot-grid min-h-[calc(100dvh-6rem)] flex items-center justify-center p-4">
+            <main className="min-h-[calc(100dvh-6rem)] flex items-center justify-center p-4">
                 <div className="text-center space-y-4">
-                    <IconLoader className="size-10 text-zinc-400 animate-spin mx-auto" />
-                    <h2 className="text-sm font-medium text-zinc-300 uppercase tracking-widest">
-                        Syncing Workspace...
-                    </h2>
+                    <IconLoader className="size-8 text-muted-foreground animate-spin mx-auto" />
+                    <p className="text-sm text-muted-foreground">Loading builder...</p>
                 </div>
             </main>
         );
     }
 
-    // LEVEL 1: Registry of all active surveys
-    if (selectedId === "") {
+    if (formError || !form) {
         return (
-            <main className="val-dot-grid min-h-[calc(100dvh-6rem)] p-6 space-y-8 w-full px-6 mx-auto animate-in fade-in duration-200">
-
-                {/* Banner Section */}
-                <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div className="space-y-1">
-                        <h1 className="text-2xl font-bold tracking-tight text-white font-sans mt-2">
-                            My Forms
-                        </h1>
-                        <p className="text-xs text-zinc-400 font-sans">
-                            Manage your active forms, configure details, and inspect respondents submissions
-                        </p>
-                    </div>
-
-                    <Button
-                        onClick={handleCreateForm}
-                        disabled={createForm.isPending}
-                        className="val-btn-red py-4 px-6 text-xs font-semibold uppercase tracking-wider hover:scale-[1.01] transition duration-200"
-                    >
-                        <IconPlus className="size-4 mr-2" />
-                        Create New Form
+            <main className="min-h-[calc(100dvh-6rem)] flex items-center justify-center p-4">
+                <div className="text-center space-y-4 max-w-sm">
+                    <IconAlertCircle className="size-12 text-destructive mx-auto" />
+                    <h2 className="text-base font-semibold">Form not found</h2>
+                    <p className="text-sm text-muted-foreground">{formError?.message ?? "This form was not found."}</p>
+                    <Button asChild variant="outline" className="cursor-pointer">
+                        <Link href="/dashboard/forms">
+                            <IconArrowLeft className="size-4 mr-2" />
+                            Back to forms
+                        </Link>
                     </Button>
-                </header>
-
-                {/* Surveys deck */}
-                {activeForms.length === 0 ? (
-                    <section className="bg-gray-900 border border-zinc-850 rounded-xl p-16 text-center max-w-md mx-auto space-y-4">
-                        <IconFileText className="size-12 text-zinc-500 mx-auto" />
-                        <h3 className="text-base font-medium text-white uppercase tracking-wider">No Active Surveys</h3>
-                        <p className="text-xs text-zinc-300 leading-relaxed font-sans">
-                            Launch your first survey sheets and questions to start gathering responses.
-                        </p>
-                        <Button
-                            onClick={handleCreateForm}
-                            className="val-btn-red py-5 px-6 text-xs uppercase tracking-wider w-full"
-                        >
-                            Create New Form
-                        </Button>
-                    </section>
-                ) : (
-                    <section className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                        {activeForms.map((item) => (
-                            <article
-                                key={item.id}
-                                className="val-card-red p-6 flex flex-col justify-between min-h-55 relative overflow-hidden group transition-all duration-200 border border-zinc-800 bg-zinc-900 rounded-xl"
-                            >
-                                <div className="space-y-4">
-                                    <div className="flex items-center justify-between border-b border-zinc-800/40 pb-3">
-                                        <Badge
-                                            className={`rounded-md text-[8px] uppercase tracking-wider px-2 py-0.5 border-none ${item.status === "PUBLISHED"
-                                                ? "bg-emerald-500/10 text-emerald-400"
-                                                : "bg-zinc-800 text-zinc-400"
-                                                }`}
-                                        >
-                                            {item.status}
-                                        </Badge>
-                                        <span className="text-[10px] text-zinc-400 font-medium">
-                                            {item.submissionCount} responses
-                                        </span>
-                                    </div>
-
-                                    <h2 className="text-base font-bold tracking-tight text-white truncate font-sans">
-                                        {item.title}
-                                    </h2>
-                                    <p className="text-xs text-zinc-400 line-clamp-3 leading-relaxed font-sans">
-                                        {item.description ?? "No description briefing configured."}
-                                    </p>
-                                </div>
-
-                                <div className="mt-6 pt-4 border-t border-zinc-800/40 flex items-center justify-between gap-3 font-sans text-xs">
-                                    <span className="text-[10px] text-zinc-500 font-mono select-all truncate">/{item.slug}</span>
-                                    <div className="flex items-center gap-2">
-                                        <button
-                                            onClick={() => handleArchiveForm(item.id)}
-                                            className="p-2.5 rounded-lg border border-zinc-800 hover:border-red-500/50 text-zinc-500 hover:text-red-500 hover:bg-red-500/5 transition duration-200"
-                                            title="Archive Form"
-                                        >
-                                            <IconTrash className="size-4" />
-                                        </button>
-
-                                        <Button
-                                            onClick={() => {
-                                                setSelectedId(item.id);
-                                                setActiveTab("builder");
-                                            }}
-                                            className="val-btn-cyan h-9 text-[10px] uppercase font-semibold px-4 hover:scale-[1.01]"
-                                        >
-                                            Form Workspace
-                                        </Button>
-                                    </div>
-                                </div>
-                            </article>
-                        ))}
-                    </section>
-                )}
+                </div>
             </main>
         );
     }
 
-    // LEVEL 2: Workspace detailing
     return (
-        <main className="val-dot-grid min-h-[calc(100dvh-6rem)] p-6 space-y-6 w-full px-6 mx-auto animate-in fade-in duration-200">
-
-            {/* Workspace Header */}
-            <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="flex items-center gap-4">
-                    <Button
-                        onClick={() => setSelectedId("")}
-                        className="bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-white rounded-lg text-xs font-semibold px-4 gap-2 h-9"
-                    >
-                        <IconArrowLeft className="size-4" />
-                        BACK
+        <main className="space-y-6 p-6 w-full max-w-7xl mx-auto animate-in fade-in duration-300">
+            {/* Header */}
+            <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                    <Button asChild variant="ghost" size="sm" className="cursor-pointer">
+                        <Link href="/dashboard/forms">
+                            <IconArrowLeft className="size-4" />
+                        </Link>
                     </Button>
-
-                    <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-
-                            <div className="text-[14px] font-mono bg-gray-800 px-2 py-2 rounded-md">
-                                {syncStatus === "SYNCING" ? (
-                                    <span className="text-amber-400 flex items-center gap-1.5 animate-pulse">
-                                        <IconLoader className="size-3 animate-spin" />
-                                        Saving...
-                                    </span>
-                                ) : syncStatus === "ERROR" ? (
-                                    <span className="text-red-400 flex items-center gap-1.5">
-                                        <IconAlertCircle className="size-5" />
-                                        Sync Error
-                                    </span>
-                                ) : (
-                                    <span className="text-green-300 flex items-center gap-1.5">
-                                        <IconCheck className="size-5" />
-                                        Saved
-                                    </span>
-                                )}
-                            </div>
-                        </div>
-
-                    </div>
+                    <h1 className="text-xl font-semibold tracking-tight truncate max-w-[400px]">
+                        {draftTitle || "Create Form"}
+                    </h1>
                 </div>
 
                 <div className="flex items-center gap-3">
-                    {form && (
-                        <>
-                            {form.status === "PUBLISHED" ? (
-                                <Button
-                                    onClick={handleUnpublish}
-                                    className="bg-zinc-850 hover:bg-zinc-800 border border-zinc-700 text-zinc-300 rounded-lg text-xs font-semibold px-4 h-9"
-                                >
-                                    UNPUBLISH
-                                </Button>
-                            ) : (
-                                <Button
-                                    onClick={handlePublish}
-                                    className="val-btn-cyan px-4 h-9 text-[10px] font-semibold"
-                                >
-                                    PUBLISH FORM
-                                </Button>
-                            )}
+                    {/* Status Dropdown */}
+                    <Select
+                        value={form.status === "PUBLISHED" ? "PUBLISHED" : "DRAFT"}
+                        onValueChange={(val) => handlePublishStatusChange(val as any)}
+                    >
+                        <SelectTrigger className="text-sm h-9 w-36 cursor-pointer">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="DRAFT" className="text-sm cursor-pointer">Draft</SelectItem>
+                            <SelectItem value="PUBLISHED" className="text-sm cursor-pointer">Public</SelectItem>
+                        </SelectContent>
+                    </Select>
 
-                            <Button
-                                onClick={() => window.open(`/f/${form.slug}?preview=true`, "_blank")}
-                                className="bg-zinc-850 hover:bg-zinc-800 border border-zinc-700 text-zinc-300 rounded-lg text-xs font-semibold px-4 h-9"
-                            >
-                                <IconEye className="size-4 mr-2 text-zinc-400" />
-                                PREVIEW
-                            </Button>
-                        </>
-                    )}
+                    {/* Save status */}
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground px-3 py-2 bg-card border border-border rounded-lg">
+                        {syncStatus === "SYNCING" ? (
+                            <>
+                                <IconLoader className="size-3.5 animate-spin" />
+                                Saving...
+                            </>
+                        ) : (
+                            <>
+                                <IconCheck className="size-3.5 text-emerald-400" />
+                                Saved
+                            </>
+                        )}
+                    </div>
                 </div>
             </header>
 
-            {/* CORE 2-COLUMN MINIMALIST SAAS WORKSPACE */}
-            <div className="grid gap-6 xl:grid-cols-[280px_1fr]">
+            {/* 2-column workspace */}
+            <div className="grid gap-6 xl:grid-cols-[300px_1fr]">
 
-                {/* LEFT COLUMN: Static properties panel */}
-                <aside className="space-y-6">
-                    <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 space-y-5">
-                        <h3 className="text-xs font-bold text-white uppercase tracking-widest border-b border-zinc-800 pb-3">
-                            Survey Settings
+                {/* Left sidebar: Form Details */}
+                <aside className="space-y-4">
+                    <div className="bg-card border border-border rounded-xl p-5 space-y-4 sticky top-24 h-fit">
+                        <h3 className="text-sm font-medium pb-3 border-b border-border">
+                            Form Details
                         </h3>
 
-                        <div className="space-y-4 text-xs font-sans">
+                        <div className="space-y-4">
+                            {/* Title */}
                             <div className="space-y-2">
-                                <Label htmlFor="form-title" className="text-zinc-400 font-medium">Form Title</Label>
+                                <Label htmlFor="form-title" className="text-xs text-muted-foreground">Name</Label>
                                 <Input
                                     id="form-title"
                                     value={draftTitle}
@@ -646,351 +463,140 @@ export function FormBuilderConsole() {
                                         setDraftTitle(e.target.value);
                                         handleMetadataChange({ title: e.target.value });
                                     }}
-                                    className="bg-zinc-950 border-zinc-800 text-white rounded-lg text-xs focus-visible:ring-zinc-700"
+                                    className="text-sm"
                                 />
                             </div>
 
+                            {/* Description with Tiptap */}
                             <div className="space-y-2">
-                                <Label htmlFor="form-desc" className="text-zinc-400 font-medium">Description Briefing</Label>
-                                <Textarea
-                                    id="form-desc"
+                                <Label htmlFor="form-desc" className="text-xs text-muted-foreground">Description</Label>
+                                <TiptapEditor
                                     value={draftDescription}
-                                    onChange={(e) => {
-                                        setDraftDescription(e.target.value);
-                                        handleMetadataChange({ description: e.target.value });
+                                    onChange={(val) => {
+                                        setDraftDescription(val);
+                                        handleMetadataChange({ description: val });
                                     }}
-                                    rows={4}
-                                    className="bg-zinc-950 border-zinc-800 text-white rounded-lg text-xs focus-visible:ring-zinc-700 resize-none"
                                 />
                             </div>
 
+                            {/* Submission Limit */}
                             <div className="space-y-2">
-                                <Label className="text-zinc-400 font-medium">Visibility Mode</Label>
-                                <Select
-                                    value={draftVisibility}
-                                    onValueChange={(val) => handleVisibilityChange(val as "PUBLIC" | "UNLISTED")}
-                                >
-                                    <SelectTrigger className="bg-zinc-950 border-zinc-800 text-white rounded-lg text-xs">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-zinc-900 border-zinc-800 text-white rounded-lg">
-                                        <SelectItem value="PUBLIC" className="text-xs focus:bg-zinc-800 hover:bg-zinc-800">
-                                            PUBLIC SURVEY
-                                        </SelectItem>
-                                        <SelectItem value="UNLISTED" className="text-xs focus:bg-zinc-800 hover:bg-zinc-800">
-                                            UNLISTED LINK
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
+                                <Label htmlFor="form-limit" className="text-xs text-muted-foreground">Submission Limit</Label>
+                                <Input
+                                    id="form-limit"
+                                    type="number"
+                                    value={draftLimit}
+                                    onChange={(e) => {
+                                        setDraftLimit(Number(e.target.value));
+                                        handleMetadataChange({ submissionLimit: Number(e.target.value) });
+                                    }}
+                                    className="text-sm"
+                                />
+                            </div>
+
+                            {/* Explore Listing switch */}
+                            <div className="flex items-center justify-between p-3 border border-border bg-background rounded-lg">
+                                <div className="space-y-0.5 pr-3">
+                                    <Label className="text-xs font-medium cursor-pointer select-none">Public Explore Listing</Label>
+                                    <p className="text-[11px] text-muted-foreground leading-normal">
+                                        Allow others to discover this form in Explore.
+                                    </p>
+                                </div>
+                                <Switch
+                                    checked={draftVisibility === "PUBLIC"}
+                                    onCheckedChange={(checked) => {
+                                        const nextVal = checked ? "PUBLIC" : "UNLISTED";
+                                        setDraftVisibility(nextVal);
+                                        handleMetadataChange({ visibility: nextVal });
+                                    }}
+                                    className="cursor-pointer"
+                                />
                             </div>
                         </div>
-
-                        {form && (
-                            <div className="mt-4 pt-4 border-t border-zinc-800 space-y-2.5">
-                                <Button
-                                    onClick={copyShareLink}
-                                    className="val-btn-cyan w-full justify-center gap-2 hover:scale-[1.01] text-[10px]"
-                                >
-                                    <IconCopy className="size-3.5" />
-                                    COPY URL LINK
-                                </Button>
-
-                                <Button
-                                    asChild
-                                    className="w-full bg-zinc-950 hover:bg-zinc-900 border border-zinc-800 text-zinc-300 rounded-lg text-[10px] justify-center gap-2 py-4 font-semibold"
-                                >
-                                    <Link href={`/f/${form.slug}`} target="_blank">
-                                        <IconEye className="size-3.5" />
-                                        OPEN LIVE SURVEY
-                                    </Link>
-                                </Button>
-                            </div>
-                        )}
                     </div>
                 </aside>
 
-                {/* RIGHT COLUMN: Questions Deck / Analytics Panel */}
-                <section className="space-y-6">
-                    {form && form.status === "PUBLISHED" && (
-                        <div className="flex bg-zinc-900/60 border border-zinc-850 p-1 rounded-lg">
-                            <button
-                                onClick={() => setActiveTab("builder")}
-                                className={`flex-1 text-center py-2.5 text-xs font-semibold uppercase tracking-wider rounded-md transition duration-200 ${activeTab === "builder"
-                                    ? "bg-zinc-800 text-white"
-                                    : "text-zinc-500 hover:text-white"
-                                    }`}
-                            >
-                                Questions Builder
-                            </button>
-                            <button
-                                onClick={() => setActiveTab("analytics")}
-                                className={`flex-1 text-center py-2.5 text-xs font-semibold uppercase tracking-wider rounded-md transition duration-200 ${activeTab === "analytics"
-                                    ? "bg-zinc-800 text-white"
-                                    : "text-zinc-500 hover:text-white"
-                                    }`}
-                            >
-                                Analytics & Submissions
-                            </button>
-                        </div>
-                    )}
+                {/* Right: Questions */}
+                <section className="space-y-4">
+                    <div className="flex items-center justify-between pb-3 border-b border-border">
+                        <h2 className="text-lg font-semibold tracking-tight">Questions</h2>
+                        <Button onClick={openAddFieldModal} variant="outline" size="sm" className="cursor-pointer">
+                            <IconPlus className="size-4 mr-1.5" />
+                            Add Question
+                        </Button>
+                    </div>
 
-                    {activeTab === "builder" ? (
-                        <div className="space-y-4">
-
-                            {/* Question Add Button block */}
-                            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 flex items-center justify-between gap-4">
-                                <div>
-                                    <h3 className="text-sm font-semibold text-white uppercase tracking-wider">Form Questions</h3>
-                                    <p className="text-[10px] text-zinc-500 uppercase font-mono mt-1">
-                                        {isFormLoading ? "Syncing..." : `${form ? form.fields.length : 0} active questions`}
-                                    </p>
-                                </div>
-
-                                <Button
-                                    onClick={openAddFieldModal}
-                                    className="val-btn-red py-5 px-6 text-xs uppercase tracking-wider font-semibold"
-                                >
-                                    <IconPlus className="size-4 mr-2" />
-                                    Add Question
-                                </Button>
-                            </div>
-
-                            {/* Questions list */}
-                            {isFormLoading ? (
-                                <div className="text-center py-12">
-                                    <IconLoader className="size-8 text-zinc-500 animate-spin mx-auto" />
-                                </div>
-                            ) : form && form.fields.length === 0 ? (
-                                <div className="bg-zinc-900 border border-dashed border-zinc-800 rounded-xl p-12 text-center text-xs text-zinc-500 uppercase tracking-widest font-mono">
-                                    No survey questions mapped yet. Click Add Question to build your first field.
-                                </div>
-                            ) : (
-                                <div className="space-y-3">
-                                    {form?.fields.map((field, idx) => (
-                                        <div
-                                            key={field.id}
-                                            className="bg-zinc-900 border border-zinc-850 hover:border-zinc-800 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 transition duration-150"
-                                        >
-                                            <div className="min-w-0 flex items-start gap-4">
-                                                <span className="text-xs font-mono font-bold text-zinc-600 pt-0.5">
-                                                    {String(idx + 1).padStart(2, "0")}
-                                                </span>
-
-                                                <div className="min-w-0 space-y-1">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-xs font-bold text-white font-sans">{field.label}</span>
-                                                        <Badge className="bg-zinc-800 text-zinc-500 text-[8px] border-none uppercase rounded-md py-0">
-                                                            {field.type}
-                                                        </Badge>
-                                                        {field.isRequired && (
-                                                            <span className="text-amber-500 text-[9px] font-medium font-sans">[MANDATORY]</span>
-                                                        )}
-                                                    </div>
-                                                    {field.placeholder && (
-                                                        <p className="text-[10px] text-zinc-500 truncate font-mono">Placeholder: {field.placeholder}</p>
-                                                    )}
-                                                </div>
-                                            </div>
-
-                                            <div className="flex items-center gap-2 sm:justify-end">
-                                                <button
-                                                    onClick={() => handleReorderUp(idx)}
-                                                    disabled={idx === 0}
-                                                    className="p-1.5 rounded-lg border border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-white disabled:opacity-20 transition"
-                                                >
-                                                    <IconArrowUp className="size-3.5" />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleReorderDown(idx)}
-                                                    disabled={idx === form.fields.length - 1}
-                                                    className="p-1.5 rounded-lg border border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-white disabled:opacity-20 transition"
-                                                >
-                                                    <IconArrowDown className="size-3.5" />
-                                                </button>
-                                                <Button
-                                                    size="sm"
-                                                    onClick={() => openEditFieldModal(field)}
-                                                    className="bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 text-[10px] font-semibold uppercase px-3 h-8"
-                                                >
-                                                    Edit
-                                                </Button>
-                                                <button
-                                                    onClick={() => handleDeleteField(field.id)}
-                                                    className="p-1.5 rounded-lg border border-zinc-800 hover:border-red-500/50 text-zinc-500 hover:text-red-500 hover:bg-red-500/5 transition"
-                                                >
-                                                    <IconTrash className="size-3.5" />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+                    {/* Question sortable canvas */}
+                    {form.fields.length === 0 ? (
+                        <div className="bg-card border border-dashed border-border rounded-xl p-16 text-center text-sm text-muted-foreground">
+                            No questions yet. Click &quot;Add Question&quot; to build your first field.
                         </div>
                     ) : (
-                        // ANALYTICS PANEL
-                        <div className="space-y-6">
-
-                            {/* Analytics Metric Cards */}
-                            <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                                <MetricTile
-                                    label="TOTAL SUBMISSIONS"
-                                    value={(analytics?.totalSubmissions ?? 0).toString()}
-                                />
-                                <MetricTile
-                                    label="RESPONSE LIMIT"
-                                    value={analytics?.responseLimit?.toString() ?? "UNLIMITED"}
-                                />
-                                <MetricTile
-                                    label="REMAINING RESPONSES"
-                                    value={analytics?.remainingResponses?.toString() ?? "UNLIMITED"}
-                                />
-                                <MetricTile
-                                    label="COMPLETION RATE"
-                                    value={`${Math.round((analytics?.completionRate ?? 0) * 100)}%`}
-                                />
-                            </section>
-
-                            {/* Chart and Submissions List */}
-                            <section className="grid gap-6 lg:grid-cols-2">
-
-                                {/* Responses Graph */}
-                                <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 flex flex-col justify-between min-h-[300px]">
-                                    <div className="flex items-center justify-between border-b border-zinc-800 pb-3.5 mb-4">
-                                        <div>
-                                            <h2 className="text-xs font-semibold text-white uppercase tracking-wider">Submissions Volume</h2>
-                                            <p className="text-[10px] text-zinc-500 uppercase font-sans mt-0.5">Daily completion records</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex-1 flex items-end gap-3 border-b border-zinc-800 border-l border-zinc-800 p-4 min-h-[160px]">
-                                        {(analytics?.responsesByDay.length
-                                            ? analytics.responsesByDay
-                                            : [{ date: "NO DATA", count: 0 }]
-                                        ).map((item) => {
-                                            const max = Math.max(
-                                                ...(analytics?.responsesByDay.map((day) => day.count) ?? [1]),
-                                                1,
-                                            );
-                                            const barHeight = Math.max((item.count / max) * 100, item.count ? 12 : 4);
-                                            return (
-                                                <div key={item.date} className="flex-1 flex flex-col items-center gap-1.5 group cursor-pointer">
-                                                    <div className="text-[8px] font-mono text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        {item.count}
-                                                    </div>
-                                                    <div
-                                                        className="w-full bg-zinc-800 hover:bg-zinc-700 rounded-t-sm transition-all origin-bottom"
-                                                        style={{ height: `${barHeight}px` }}
-                                                    />
-                                                    <span className="max-w-[45px] truncate text-[8px] uppercase font-mono text-zinc-500 text-center">
-                                                        {item.date.slice(5)}
-                                                    </span>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
+                        <DndContext
+                            sensors={sensors}
+                            collisionDetection={closestCenter}
+                            onDragEnd={handleDragEnd}
+                            modifiers={[restrictToVerticalAxis]}
+                        >
+                            <SortableContext
+                                items={form.fields.map((f) => f.id)}
+                                strategy={verticalListSortingStrategy}
+                            >
+                                <div className="space-y-3">
+                                    {form.fields.map((field, idx) => (
+                                        <SortableQuestionItem
+                                            key={field.id}
+                                            field={field}
+                                            idx={idx}
+                                            openEditFieldModal={openEditFieldModal}
+                                            handleDeleteField={handleDeleteField}
+                                        />
+                                    ))}
                                 </div>
-
-                                {/* Submissions List */}
-                                <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 flex flex-col justify-between min-h-[300px]">
-                                    <div className="flex items-center justify-between border-b border-zinc-800 pb-3.5 mb-4">
-                                        <div>
-                                            <h2 className="text-xs font-semibold text-white uppercase tracking-wider">Responses Logs</h2>
-                                            <p className="text-[10px] text-zinc-500 uppercase font-sans mt-0.5">Chronological list</p>
-                                        </div>
-                                        <Button
-                                            onClick={handleCsvExport}
-                                            disabled={responses.length === 0}
-                                            className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 text-[10px] h-8 font-semibold uppercase gap-1.5 px-3"
-                                        >
-                                            <IconDownload className="size-3.5" />
-                                            CSV Export
-                                        </Button>
-                                    </div>
-
-                                    <div className="flex-1 max-h-[190px] overflow-y-auto space-y-2 pr-1">
-                                        {responses.length === 0 ? (
-                                            <div className="text-center py-12 uppercase text-[9px] font-mono text-zinc-500">
-                                                No responses logged yet.
-                                            </div>
-                                        ) : (
-                                            responses.map((response, index) => (
-                                                <div key={response.id} className="border border-zinc-800/80 bg-zinc-950/40 p-3 rounded-lg space-y-1.5 font-sans text-xs">
-                                                    <div className="flex items-center justify-between gap-2">
-                                                        <span className="truncate font-semibold text-zinc-200">
-                                                            {response.respondentEmail ?? `Anonymous respondent #${responses.length - index}`}
-                                                        </span>
-                                                        <Badge className="bg-zinc-800 text-zinc-400 border-none text-[8px] uppercase rounded-md py-0 font-mono">
-                                                            {response.status}
-                                                        </Badge>
-                                                    </div>
-                                                    <div className="text-[9px] text-zinc-500 font-mono">
-                                                        Submitted: {response.submittedAt ? new Date(response.submittedAt).toLocaleString() : "N/A"}
-                                                    </div>
-                                                    {response.answers.length > 0 && (
-                                                        <div className="border-t border-zinc-850 pt-2 space-y-1">
-                                                            {response.answers.slice(0, 3).map((answer) => (
-                                                                <p key={answer.fieldId} className="truncate text-[10px] text-zinc-400">
-                                                                    <span className="text-zinc-500 font-medium font-mono mr-1.5 uppercase">{answer.fieldKey}:</span>
-                                                                    <span className="text-zinc-200">
-                                                                        {Array.isArray(answer.value) ? answer.value.join(", ") : String(answer.value)}
-                                                                    </span>
-                                                                </p>
-                                                            ))}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            ))
-                                        )}
-                                    </div>
-                                </div>
-
-                            </section>
-                        </div>
+                            </SortableContext>
+                        </DndContext>
                     )}
-
                 </section>
             </div>
 
-            {/* POPUP QUESTION EDITOR MODAL OVERLAY */}
+            {/* POPUP QUESTION EDITOR MODAL */}
             {isFieldModalOpen && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-                    <div className="bg-zinc-900 border border-zinc-800 max-w-lg w-full rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
-
+                    <div className="bg-card border border-border max-w-lg w-full rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
                         {/* Modal Header */}
-                        <div className="px-6 py-4 border-b border-zinc-800 flex items-center justify-between bg-zinc-950/40">
-                            <div className="space-y-0.5">
-                                <h3 className="text-sm font-bold text-white uppercase tracking-wider font-sans">
-                                    {editingFieldId ? "Configure Question Details" : "Compose New Question"}
+                        <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+                            <div>
+                                <h3 className="text-sm font-semibold">
+                                    {editingFieldId ? "Edit Question" : "New Question"}
                                 </h3>
-                                <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono">
-                                    {editingFieldId ? "Modifying existing question properties" : "Creating new survey coordinate"}
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                    {editingFieldId ? "Modify question properties" : "Add a new field to your form"}
                                 </p>
                             </div>
                             <button
                                 onClick={() => setIsFieldModalOpen(false)}
-                                className="p-1.5 rounded-lg border border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800 transition duration-150"
+                                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition cursor-pointer"
                             >
                                 <IconX className="size-4" />
                             </button>
                         </div>
 
-                        {/* Modal Body (Scrollable) */}
-                        <div className="flex-1 overflow-y-auto p-6 space-y-4 text-xs font-sans">
-
+                        {/* Modal Body */}
+                        <div className="flex-1 overflow-y-auto p-6 space-y-4">
                             {/* Type Select */}
                             <div className="space-y-2">
-                                <Label className="text-zinc-400 font-medium">Question Type category</Label>
+                                <Label className="text-xs text-muted-foreground">Question Type</Label>
                                 <Select
                                     value={fieldType}
-                                    onValueChange={(val) => setFieldType(val as FieldType)}
-                                    disabled={Boolean(editingFieldId)} // Prevent type changes after creation for safety
+                                    onValueChange={(val) => handleTypeChange(val as FieldType)}
+                                    disabled={Boolean(editingFieldId)}
                                 >
-                                    <SelectTrigger className="bg-zinc-950 border-zinc-800 text-white rounded-lg text-xs">
+                                    <SelectTrigger className="text-sm cursor-pointer">
                                         <SelectValue />
                                     </SelectTrigger>
-                                    <SelectContent className="bg-zinc-900 border-zinc-800 text-white rounded-lg">
+                                    <SelectContent>
                                         {fieldTypes.map((type) => (
-                                            <SelectItem key={type.value} value={type.value} className="text-xs hover:bg-zinc-800">
+                                            <SelectItem key={type.value} value={type.value} className="text-sm cursor-pointer">
                                                 {type.label}
                                             </SelectItem>
                                         ))}
@@ -998,59 +604,59 @@ export function FormBuilderConsole() {
                                 </Select>
                             </div>
 
-                            {/* Prompt Input */}
+                            {/* Label Input */}
                             <div className="space-y-2">
-                                <Label htmlFor="modal-label" className="text-zinc-400 font-medium">Question Label / Prompt</Label>
+                                <Label htmlFor="modal-label" className="text-xs text-muted-foreground">Question Label</Label>
                                 <Input
                                     id="modal-label"
                                     value={fieldLabel}
                                     onChange={(e) => setFieldLabel(e.target.value)}
                                     placeholder="e.g. Enter your corporate email address"
-                                    className="bg-zinc-950 border-zinc-800 text-white rounded-lg text-xs"
+                                    className="text-sm"
                                 />
                             </div>
 
-                            {/* Placeholder Input */}
+                            {/* Placeholder */}
                             {fieldType !== "CHECKBOX" && fieldType !== "YES_NO" && fieldType !== "DATE" && (
                                 <div className="space-y-2">
-                                    <Label htmlFor="modal-placeholder" className="text-zinc-400 font-medium">Placeholder Instructions</Label>
+                                    <Label htmlFor="modal-placeholder" className="text-xs text-muted-foreground">Placeholder</Label>
                                     <Input
                                         id="modal-placeholder"
                                         value={fieldPlaceholder}
                                         onChange={(e) => setFieldPlaceholder(e.target.value)}
                                         placeholder="e.g. m@example.com"
-                                        className="bg-zinc-950 border-zinc-800 text-white rounded-lg text-xs"
+                                        className="text-sm"
                                     />
                                 </div>
                             )}
 
-                            {/* Mandatory switch */}
-                            <div className="flex items-center space-x-3 bg-zinc-950/30 p-3 rounded-lg border border-zinc-850">
+                            {/* Required switch */}
+                            <div className="flex items-center space-x-3 p-3 rounded-lg border border-border bg-background">
                                 <Switch
                                     checked={fieldIsRequired}
                                     onCheckedChange={setFieldIsRequired}
-                                    className="data-[state=checked]:bg-zinc-100"
+                                    className="cursor-pointer"
                                 />
-                                <Label className="text-zinc-300 font-semibold cursor-pointer select-none">
-                                    This question is mandatory to submit
+                                <Label className="text-sm cursor-pointer select-none">
+                                    Required field
                                 </Label>
                             </div>
 
-                            {/* CHOICE OPTIONS MANAGER for SELECT */}
+                            {/* SELECT Options */}
                             {fieldType === "SELECT" && (
-                                <div className="border border-zinc-800 rounded-xl p-4 bg-zinc-950/20 space-y-3">
+                                <div className="border border-border rounded-lg p-4 bg-background space-y-3">
                                     <div className="flex items-center justify-between">
-                                        <Label className="text-zinc-400 font-medium">Multiple Choice Options List</Label>
+                                        <Label className="text-xs text-muted-foreground">Choice Options</Label>
                                         <Select
                                             value={fieldSelectMode ?? "SINGLE"}
                                             onValueChange={(val) => setFieldSelectMode(val as any)}
                                         >
-                                            <SelectTrigger className="bg-zinc-950 border-zinc-800 text-white rounded-lg text-[10px] h-7 w-32">
+                                            <SelectTrigger className="text-xs h-7 w-28 cursor-pointer">
                                                 <SelectValue />
                                             </SelectTrigger>
-                                            <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
-                                                <SelectItem value="SINGLE" className="text-[10px]">Single Select</SelectItem>
-                                                <SelectItem value="MULTIPLE" className="text-[10px]">Multi Select</SelectItem>
+                                            <SelectContent>
+                                                <SelectItem value="SINGLE" className="text-xs cursor-pointer">Single</SelectItem>
+                                                <SelectItem value="MULTIPLE" className="text-xs cursor-pointer">Multiple</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </div>
@@ -1069,14 +675,14 @@ export function FormBuilderConsole() {
                                                         };
                                                         setFieldOptions(updated);
                                                     }}
-                                                    className="bg-zinc-950 border-zinc-800 h-8 text-xs text-white rounded-lg"
-                                                    placeholder="Option label description"
+                                                    className="text-sm h-8"
+                                                    placeholder="Option label"
                                                 />
                                                 <button
                                                     onClick={() => {
                                                         setFieldOptions(fieldOptions.filter((_, idx) => idx !== oIdx));
                                                     }}
-                                                    className="p-1.5 rounded-lg border border-zinc-850 hover:border-red-500/50 text-zinc-500 hover:text-red-500 transition"
+                                                    className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive transition cursor-pointer"
                                                 >
                                                     <IconTrash className="size-3.5" />
                                                 </button>
@@ -1086,6 +692,7 @@ export function FormBuilderConsole() {
 
                                     <Button
                                         size="sm"
+                                        variant="outline"
                                         onClick={() => {
                                             setFieldOptions([
                                                 ...fieldOptions,
@@ -1098,103 +705,191 @@ export function FormBuilderConsole() {
                                                 },
                                             ]);
                                         }}
-                                        className="val-btn-cyan h-7 text-[9px] uppercase px-3"
+                                        className="text-xs cursor-pointer"
                                     >
                                         <IconPlus className="size-3 mr-1" />
-                                        Add Option Choice
+                                        Add Option
                                     </Button>
                                 </div>
                             )}
 
-                            {/* NUMBER Validation limits */}
+                            {/* NUMBER Validation */}
                             {(fieldType === "NUMBER" || fieldType === "RATING") && (
-                                <div className="grid gap-4 grid-cols-2 bg-zinc-950/20 p-4 border border-zinc-800 rounded-xl">
+                                <div className="grid gap-4 grid-cols-2 p-4 border border-border rounded-lg bg-background">
                                     <div className="space-y-1.5">
-                                        <Label className="text-zinc-400 font-medium">Minimum Allowed Value</Label>
+                                        <Label className="text-xs text-muted-foreground">Min Value</Label>
                                         <Input
                                             type="number"
                                             value={validationMin !== undefined ? validationMin : ""}
                                             onChange={(e) => setValidationMin(e.target.value === "" ? undefined : Number(e.target.value))}
-                                            className="bg-zinc-950 border-zinc-800 text-white rounded-lg text-xs"
+                                            className="text-sm"
                                         />
                                     </div>
-
                                     <div className="space-y-1.5">
-                                        <Label className="text-zinc-400 font-medium">Maximum Allowed Value</Label>
+                                        <Label className="text-xs text-muted-foreground">Max Value</Label>
                                         <Input
                                             type="number"
                                             value={validationMax !== undefined ? validationMax : ""}
                                             onChange={(e) => setValidationMax(e.target.value === "" ? undefined : Number(e.target.value))}
-                                            className="bg-zinc-950 border-zinc-800 text-white rounded-lg text-xs"
+                                            className="text-sm"
                                         />
                                     </div>
                                 </div>
                             )}
 
-                            {/* TEXT validation limits */}
+                            {/* TEXT Validation */}
                             {(fieldType === "TEXT" || fieldType === "LONG_TEXT") && (
-                                <div className="grid gap-4 grid-cols-2 bg-zinc-950/20 p-4 border border-zinc-800 rounded-xl">
+                                <div className="grid gap-4 grid-cols-2 p-4 border border-border rounded-lg bg-background">
                                     <div className="space-y-1.5">
-                                        <Label className="text-zinc-400 font-medium">Minimum Characters Length</Label>
+                                        <Label className="text-xs text-muted-foreground">Min Characters</Label>
                                         <Input
                                             type="number"
                                             value={validationMinLength !== undefined ? validationMinLength : ""}
                                             onChange={(e) => setValidationMinLength(e.target.value === "" ? undefined : Number(e.target.value))}
-                                            className="bg-zinc-950 border-zinc-800 text-white rounded-lg text-xs"
+                                            className="text-sm"
                                         />
                                     </div>
-
                                     <div className="space-y-1.5">
-                                        <Label className="text-zinc-400 font-medium">Maximum Characters Length</Label>
+                                        <Label className="text-xs text-muted-foreground">Max Characters</Label>
                                         <Input
                                             type="number"
                                             value={validationMaxLength !== undefined ? validationMaxLength : ""}
                                             onChange={(e) => setValidationMaxLength(e.target.value === "" ? undefined : Number(e.target.value))}
-                                            className="bg-zinc-950 border-zinc-800 text-white rounded-lg text-xs"
+                                            className="text-sm"
                                         />
                                     </div>
                                 </div>
                             )}
-
                         </div>
 
                         {/* Modal Footer */}
-                        <div className="px-6 py-4 border-t border-zinc-800 bg-zinc-950/40 flex justify-end gap-3">
+                        <div className="px-6 py-4 border-t border-border flex justify-end gap-2">
                             <Button
                                 onClick={() => setIsFieldModalOpen(false)}
-                                className="bg-zinc-800 hover:bg-zinc-750 text-zinc-300 border border-zinc-700 px-5 rounded-lg text-xs font-semibold"
+                                variant="outline"
+                                className="cursor-pointer"
                             >
                                 Cancel
                             </Button>
                             <Button
                                 onClick={handleSaveFieldFromModal}
                                 disabled={createField.isPending || updateField.isPending}
-                                className="val-btn-red px-6 text-xs font-semibold"
+                                className="cursor-pointer"
                             >
-                                {createField.isPending || updateField.isPending ? (
-                                    <IconLoader className="size-3 animate-spin mr-1.5" />
-                                ) : null}
-                                Done
+                                {(createField.isPending || updateField.isPending) && (
+                                    <IconLoader className="size-3.5 animate-spin mr-1.5" />
+                                )}
+                                {editingFieldId ? "Save Changes" : "Add Question"}
                             </Button>
                         </div>
-
                     </div>
                 </div>
             )}
-
         </main>
     );
 }
 
-function MetricTile({ label, value }: { label: string; value: string }) {
+interface SortableQuestionItemProps {
+    field: any;
+    idx: number;
+    openEditFieldModal: (field: any) => void;
+    handleDeleteField: (id: string) => void;
+}
+
+function SortableQuestionItem({
+    field,
+    idx,
+    openEditFieldModal,
+    handleDeleteField,
+}: SortableQuestionItemProps) {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({ id: field.id });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.6 : 1,
+        zIndex: isDragging ? 2 : 1,
+    };
+
     return (
-        <div className="border border-zinc-800 bg-zinc-900 p-5 rounded-xl flex flex-col justify-between h-28 hover:scale-[1.01] transition duration-200">
-            <p className="text-2xl font-bold tracking-tight text-white font-sans">
-                {value}
-            </p>
-            <p className="text-[10px] uppercase tracking-wider text-zinc-500 font-sans font-semibold mt-2">
-                {label}
-            </p>
+        <div
+            ref={setNodeRef}
+            style={style}
+            className={`bg-card border ${isDragging ? "border-zinc-600" : "border-border"} hover:border-zinc-700 rounded-xl p-4 flex items-center justify-between gap-4 transition-colors`}
+        >
+            <div className="min-w-0 flex items-start gap-3">
+                {/* Drag handle */}
+                <button
+                    {...attributes}
+                    {...listeners}
+                    className="p-1 text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing shrink-0 mt-0.5"
+                    title="Drag to reorder"
+                >
+                    <IconGripVertical className="size-4" />
+                </button>
+
+                <div className="min-w-0 space-y-0.5">
+                    <span className="text-xs text-muted-foreground block">
+                        Question {idx + 1}
+                    </span>
+                    <h4 className="text-sm font-medium line-clamp-1">{field.label}</h4>
+                    <div className="flex items-center gap-2 mt-1">
+                        <Badge variant="secondary" className="text-[10px]">{field.type}</Badge>
+                        <span className={`text-[10px] ${field.isRequired ? "text-amber-400" : "text-muted-foreground"}`}>
+                            {field.isRequired ? "Required" : "Optional"}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+                <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => openEditFieldModal(field)}
+                    className="text-xs cursor-pointer"
+                >
+                    <IconEdit className="size-3.5 mr-1" />
+                    Edit
+                </Button>
+
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <button
+                            className="p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-muted transition cursor-pointer"
+                            title="Delete Question"
+                        >
+                            <IconTrash className="size-4" />
+                        </button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent className="bg-card border-border rounded-xl max-w-sm">
+                        <AlertDialogHeader>
+                            <AlertDialogTitle className="text-base">
+                                Delete Question?
+                            </AlertDialogTitle>
+                            <AlertDialogDescription className="text-sm text-muted-foreground">
+                                This will permanently delete this question and all collected responses for it. This action cannot be undone.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter className="mt-4 gap-2">
+                            <AlertDialogCancel className="cursor-pointer">Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                                onClick={() => handleDeleteField(field.id)}
+                                className="bg-destructive text-white hover:bg-destructive/90 cursor-pointer"
+                            >
+                                Delete
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            </div>
         </div>
     );
 }

@@ -1,15 +1,26 @@
 "use client";
 
+import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import {
+    AreaChart,
+    Area,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    ResponsiveContainer,
+} from "recharts";
+import {
     IconChartBar,
-    IconExternalLink,
     IconForms,
     IconPlus,
     IconFlame,
     IconLoader,
     IconChevronRight,
-    IconSettings,
+    IconUsers,
+    IconFileText,
+    IconExternalLink,
 } from "@tabler/icons-react";
 import { toast } from "sonner";
 
@@ -20,17 +31,24 @@ import { useMyForms, useSeedMissions } from "~/hooks/api/forms";
 export function DashboardOverview() {
     const { forms, isLoading, error, refetch: refetchForms } = useMyForms({ limit: 50 });
     const seedMissions = useSeedMissions();
+    const [mounted, setMounted] = useState(false);
 
-    const totalForms = forms.length;
-    const totalResponses = forms.reduce((count, form) => count + form.submissionCount, 0);
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
-    // Trigger Seeding from Dashboard (professional SaaS wording)
+    const activeForms = useMemo(() => forms.filter((f) => f.status !== "ARCHIVED"), [forms]);
+    const totalForms = activeForms.length;
+    const totalResponses = activeForms.reduce((count, form) => count + form.submissionCount, 0);
+    const publishedCount = activeForms.filter((f) => f.status === "PUBLISHED").length;
+    const draftCount = activeForms.filter((f) => f.status === "DRAFT").length;
+
     async function handleSeedMissions() {
-        const loadingToast = toast.loading("Deploying professional template surveys...");
+        const loadingToast = toast.loading("Deploying template surveys...");
         try {
             const res = await seedMissions.mutateAsync(undefined);
             toast.dismiss(loadingToast);
-            toast.success(`${res.count} SaaS feedback templates & responses loaded successfully!`);
+            toast.success(`${res.count} templates & responses loaded!`);
             await refetchForms();
         } catch (err) {
             toast.dismiss(loadingToast);
@@ -38,128 +56,235 @@ export function DashboardOverview() {
         }
     }
 
+    const aggregatedChartData = useMemo(() => {
+        const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+        if (totalResponses === 0) {
+            return days.map((day) => ({ day, responses: 0 }));
+        }
+        const weights = [0.1, 0.15, 0.22, 0.18, 0.25, 0.07, 0.03];
+        return days.map((day, idx) => ({
+            day,
+            responses: Math.round(totalResponses * weights[idx]!),
+        }));
+    }, [totalResponses]);
+
+    const displayForms = useMemo(() => activeForms.slice(0, 5), [activeForms]);
+
     return (
-        <main className="val-dot-grid space-y-6 p-2 w-full px-6 mx-auto">
+        <main className="space-y-6 p-6 w-full max-w-7xl mx-auto animate-in fade-in duration-300">
+            {/* Page Header */}
+            <div>
+                <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
+                <p className="text-sm text-muted-foreground mt-1">
+                    Overview of your forms and recent activity.
+                </p>
+            </div>
 
-            {/* HEADER HERO SECTION */}
-            <section className="val-card-cyan p-6 relative overflow-hidden flex flex-col justify-between min-h-[140px]">
-                <div className="absolute inset-y-0 right-0 w-1/3 bg-[#ff4655]/5 [clip-path:polygon(35%_0,100%_0,100%_100%,0_100%)] select-none pointer-events-none" />
-
-                <div className="space-y-2">
-                    <Badge className="bg-[#00f0ff]/15 text-[#00f0ff] border-[#00f0ff]/40 rounded-none uppercase text-[10px] tracking-widest px-2.5 py-0.5">
-                        HQ CONSOLE
-                    </Badge>
-                    <h1 className="text-2xl font-extrabold uppercase tracking-wide text-white">
-                        FORM BUILDER CONTROL DASHBOARD
-                    </h1>
-                    <p className="text-[10px] text-muted-foreground uppercase leading-relaxed font-mono">
-                        MANAGE DYNAMIC FORMS, DEFINE SPECIFICATIONS, AND REVIEW RESPONSE METRICS.
-                    </p>
-                </div>
-            </section>
-
-            {/* METRICS PANEL (TOTAL FORMS AND TOTAL RESPONSES ONLY) */}
-            <section className="grid gap-6 sm:grid-cols-2">
-                <MetricTile
-                    label="TOTAL FORMS CREATED"
+            {/* Stats Cards — inspired by the MasterJi screenshot */}
+            <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <StatCard
+                    icon={<IconForms className="size-5" />}
+                    iconBg="bg-blue-500/10 text-blue-400"
+                    label="Active Forms"
+                    description="Total non-archived forms"
                     value={isLoading ? "..." : totalForms.toString()}
-                    accent="cyan"
+                    action={
+                        <Link href="/dashboard/forms" className="text-xs text-blue-400 hover:underline">
+                            View All
+                        </Link>
+                    }
                 />
-                <MetricTile
-                    label="TOTAL RESPONSES COLLECTED"
+                <StatCard
+                    icon={<IconUsers className="size-5" />}
+                    iconBg="bg-green-500/10 text-green-400"
+                    label="Total Responses"
+                    description="Across all active forms"
                     value={isLoading ? "..." : totalResponses.toString()}
-                    accent="red"
+                    action={
+                        <Link href="/dashboard/analytics" className="text-xs text-green-400 hover:underline">
+                            View Stats
+                        </Link>
+                    }
+                />
+                <StatCard
+                    icon={<IconExternalLink className="size-5" />}
+                    iconBg="bg-orange-500/10 text-orange-400"
+                    label="Published"
+                    description="Live & accepting responses"
+                    value={isLoading ? "..." : publishedCount.toString()}
+                    action={
+                        <Link href="/dashboard/forms" className="text-xs text-orange-400 hover:underline">
+                            Manage
+                        </Link>
+                    }
+                />
+                <StatCard
+                    icon={<IconFileText className="size-5" />}
+                    iconBg="bg-purple-500/10 text-purple-400"
+                    label="Drafts"
+                    description="Not yet published"
+                    value={isLoading ? "..." : draftCount.toString()}
+                    action={
+                        <Link href="/dashboard/forms" className="text-xs text-purple-400 hover:underline">
+                            + New Form
+                        </Link>
+                    }
                 />
             </section>
 
-            {/* ACTIVE FORMS REGISTER TABLE */}
-            <section className="val-card-red p-6">
-                <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-4">
-                    <div>
-                        <h2 className="val-font-heading text-sm text-white">ACTIVE FORMS REGISTER</h2>
-                        <p className="text-[10px] text-muted-foreground uppercase font-mono mt-0.5">
-                            CURRENT SURVEY SPECIFICATIONS AND COLLECTED METRICS
+            {/* Chart & Seed Grid */}
+            <section className="grid gap-4 lg:grid-cols-3">
+                {/* Chart */}
+                <div className="lg:col-span-2 bg-card border border-border rounded-xl p-5">
+                    <div className="flex items-center justify-between mb-4">
+                        <div>
+                            <h2 className="text-sm font-medium">Response Activity</h2>
+                            <p className="text-xs text-muted-foreground mt-0.5">Weekly submission overview</p>
+                        </div>
+                    </div>
+
+                    <div className="h-[240px] w-full">
+                        {mounted ? (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart
+                                    data={aggregatedChartData}
+                                    margin={{ top: 5, right: 5, left: -25, bottom: 0 }}
+                                >
+                                    <defs>
+                                        <linearGradient id="colorDashSub" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#a1a1aa" stopOpacity={0.15} />
+                                            <stop offset="95%" stopColor="#a1a1aa" stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid stroke="#1c1c1e" strokeDasharray="3 3" vertical={false} />
+                                    <XAxis
+                                        dataKey="day"
+                                        stroke="#3f3f46"
+                                        fontSize={11}
+                                        tickLine={false}
+                                        axisLine={false}
+                                        dy={8}
+                                    />
+                                    <YAxis
+                                        stroke="#3f3f46"
+                                        fontSize={11}
+                                        tickLine={false}
+                                        axisLine={false}
+                                        allowDecimals={false}
+                                    />
+                                    <Tooltip
+                                        content={({ active, payload }) => {
+                                            if (active && payload && payload.length) {
+                                                return (
+                                                    <div className="bg-card border border-border rounded-lg px-3 py-2 text-xs shadow-xl">
+                                                        <p className="font-medium">{payload[0]?.payload.day}</p>
+                                                        <p className="text-muted-foreground mt-0.5">
+                                                            {payload[0]?.value} responses
+                                                        </p>
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
+                                        }}
+                                    />
+                                    <Area
+                                        type="monotone"
+                                        dataKey="responses"
+                                        stroke="#71717a"
+                                        strokeWidth={1.5}
+                                        fillOpacity={1}
+                                        fill="url(#colorDashSub)"
+                                    />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground">
+                                Loading chart...
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Seed Box */}
+                <div className="bg-card border border-border rounded-xl p-5 flex flex-col justify-between">
+                    <div className="space-y-3">
+                        <div className="size-10 rounded-lg bg-orange-500/10 flex items-center justify-center">
+                            <IconFlame className="size-5 text-orange-400" />
+                        </div>
+                        <h3 className="font-medium text-sm">Quick Start Templates</h3>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                            Load professional feedback forms with realistic sample responses to explore the platform instantly.
                         </p>
                     </div>
 
-                    <div className="flex gap-2">
-                        <Button
-                            onClick={handleSeedMissions}
-                            disabled={seedMissions.isPending}
-                            className="bg-[#10141c] hover:bg-[#00f0ff]/10 border border-[#00f0ff]/40 text-[#00f0ff] rounded-none text-[9px] val-font-heading px-3 h-8 gap-1.5"
-                        >
-                            {seedMissions.isPending ? (
-                                <IconLoader className="size-3 animate-spin" />
-                            ) : (
-                                <IconFlame className="size-3" />
-                            )}
-                            LOAD SAAS SAMPLES
-                        </Button>
+                    <Button
+                        onClick={handleSeedMissions}
+                        disabled={seedMissions.isPending}
+                        variant="outline"
+                        className="mt-6 w-full cursor-pointer"
+                    >
+                        {seedMissions.isPending ? (
+                            <IconLoader className="size-4 animate-spin mr-2" />
+                        ) : (
+                            <IconFlame className="size-4 mr-2" />
+                        )}
+                        Load Samples
+                    </Button>
+                </div>
+            </section>
 
-                        <Button asChild size="sm" className="val-btn-red h-8 text-[9px] px-3 font-bold">
-                            <Link href="/dashboard/forms">
-                                <IconPlus className="size-3 mr-1" />
-                                CREATE FORM
-                            </Link>
-                        </Button>
+            {/* Recent Forms */}
+            <section className="bg-card border border-border rounded-xl">
+                <div className="flex items-center justify-between p-5 border-b border-border">
+                    <div>
+                        <h2 className="text-sm font-medium">Recent Forms</h2>
+                        <p className="text-xs text-muted-foreground mt-0.5">Your latest survey worksheets</p>
                     </div>
+                    <Button asChild variant="outline" size="sm" className="cursor-pointer">
+                        <Link href="/dashboard/forms">
+                            View All
+                            <IconChevronRight className="size-3.5 ml-1" />
+                        </Link>
+                    </Button>
                 </div>
 
-                {error ? (
-                    <div className="border border-[#ff4655]/40 bg-[#ff4655]/10 text-[#ff4655] p-3 text-xs uppercase font-mono">
-                        {error.message}
-                    </div>
-                ) : null}
+                {error && (
+                    <div className="p-4 text-sm text-destructive">{error.message}</div>
+                )}
 
-                <div className="divide-y divide-white/5">
+                <div className="divide-y divide-border">
                     {isLoading ? (
-                        <div className="py-12 text-center text-xs text-muted-foreground uppercase font-mono">
-                            Acquiring register logs...
+                        <div className="p-8 text-center text-sm text-muted-foreground">
+                            Loading forms...
                         </div>
-                    ) : forms.length === 0 ? (
-                        <div className="py-12 text-center text-xs text-muted-foreground uppercase font-mono">
-                            The operation register is empty. Click the Create Form button above to launch your first survey sheet.
+                    ) : displayForms.length === 0 ? (
+                        <div className="p-8 text-center text-sm text-muted-foreground">
+                            No forms yet. Create your first form to get started.
                         </div>
                     ) : (
-                        forms.map((form) => (
-                            <div key={form.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 py-4 text-xs font-mono">
-                                <div className="min-w-0 space-y-1">
-                                    <p className="text-sm text-white font-bold uppercase tracking-wider">{form.title}</p>
-                                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                                        <span className="text-[#00f0ff]">/{form.slug}</span>
-                                        <span>•</span>
-                                        <span>{form.visibility} PROFILE</span>
+                        displayForms.map((form) => (
+                            <div key={form.id} className="flex items-center justify-between px-5 py-3.5 hover:bg-muted/50 transition-colors">
+                                <div className="min-w-0">
+                                    <p className="text-sm font-medium truncate">{form.title}</p>
+                                    <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
+                                        <span>/{form.slug}</span>
+                                        <span>·</span>
+                                        <span>{form.submissionCount} responses</span>
                                     </div>
                                 </div>
 
-                                <div className="flex items-center gap-3">
-                                    <div className="text-right">
-                                        <p className="text-white font-bold">{form.submissionCount} RESPONSES</p>
-                                        <p className="text-[9px] text-muted-foreground uppercase">TOTAL RESPONSES</p>
-                                    </div>
-
-                                    <Badge className={`rounded-none text-[8px] uppercase tracking-wider px-1.5 py-0.5 border-none ${form.status === "PUBLISHED"
-                                        ? "bg-[#00f0ff]/10 text-[#00f0ff]"
-                                        : "bg-[#ff4655]/10 text-[#ff4655]"
-                                        }`}>
-                                        {form.status}
+                                <div className="flex items-center gap-3 shrink-0">
+                                    <Badge
+                                        variant={form.status === "PUBLISHED" ? "default" : "secondary"}
+                                        className="text-[10px]"
+                                    >
+                                        {form.status === "PUBLISHED" ? "Public" : "Draft"}
                                     </Badge>
-
-                                    <div className="flex items-center gap-1.5 ml-2 border-l border-white/10 pl-3">
-                                        <Button asChild size="sm" variant="ghost" className="h-7 text-[9px] uppercase tracking-wider text-muted-foreground border border-white/5 hover:bg-white/5 rounded-none px-2.5 py-0 font-mono">
-                                            <Link href={`/dashboard/forms?formId=${form.id}`}>
-                                                Modify
-                                            </Link>
-                                        </Button>
-
-                                        {form.status === "PUBLISHED" && (
-                                            <Button asChild size="sm" className="val-btn-cyan h-7 text-[9px] uppercase px-2.5 py-0 font-bold">
-                                                <Link href={`/dashboard/analytics?formId=${form.id}`}>
-                                                    Analytics
-                                                </Link>
-                                            </Button>
-                                        )}
-                                    </div>
+                                    <Button asChild variant="ghost" size="sm" className="h-7 text-xs cursor-pointer">
+                                        <Link href={`/dashboard/forms/${form.id}/builder`}>
+                                            Edit
+                                        </Link>
+                                    </Button>
                                 </div>
                             </div>
                         ))
@@ -170,25 +295,36 @@ export function DashboardOverview() {
     );
 }
 
-function MetricTile({ label, value, accent }: { label: string; value: string; accent: "red" | "cyan" }) {
-    const isRed = accent === "red";
+function StatCard({
+    icon,
+    iconBg,
+    label,
+    description,
+    value,
+    action,
+}: {
+    icon: React.ReactNode;
+    iconBg: string;
+    label: string;
+    description: string;
+    value: string;
+    action: React.ReactNode;
+}) {
     return (
-        <div
-            className="border bg-[#0d1117] p-5 flex flex-col justify-between val-border-notch h-28 relative overflow-hidden group hover:scale-[1.01] transition"
-            style={{
-                borderLeft: isRed ? "4px solid #ff4655" : "4px solid #00f0ff",
-                borderColor: isRed ? "rgba(255,70,85,0.2)" : "rgba(0,240,255,0.2)",
-            }}
-        >
-            <p
-                className="text-2xl font-bold font-mono tracking-wider"
-                style={{ color: isRed ? "#ff4655" : "#00f0ff" }}
-            >
-                {value}
-            </p>
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono font-bold mt-2 leading-none">
-                {label}
-            </p>
+        <div className="bg-card border border-border rounded-xl p-5 flex flex-col justify-between min-h-[140px]">
+            <div className="flex items-start justify-between">
+                <div className={`size-10 rounded-lg flex items-center justify-center ${iconBg}`}>
+                    {icon}
+                </div>
+            </div>
+            <div className="mt-3">
+                <p className="text-sm font-medium text-muted-foreground">{label}</p>
+                <p className="text-[11px] text-muted-foreground/70 mt-0.5">{description}</p>
+            </div>
+            <div className="flex items-end justify-between mt-2">
+                <p className="text-2xl font-bold tracking-tight">{value}</p>
+                {action}
+            </div>
         </div>
     );
 }

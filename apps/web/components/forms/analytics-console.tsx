@@ -4,13 +4,8 @@ import { useMemo, useState, useEffect } from "react";
 import {
     IconChartBar,
     IconDatabase,
-    IconTargetArrow,
     IconArrowLeft,
     IconDownload,
-    IconFlame,
-    IconLock,
-    IconWorld,
-    IconBolt,
 } from "@tabler/icons-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -93,37 +88,32 @@ export function AnalyticsConsole() {
     }
 
     return (
-        <main className="val-dot-grid space-y-6 p-1">
-            {/* HEADER COMMAND SECTION */}
-            <section className="val-card-red p-5">
+        <main className="space-y-6 p-6 max-w-7xl mx-auto animate-in fade-in duration-300">
+            {/* Header */}
+            <section className="bg-card border border-border rounded-xl p-5">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="border-[#ff4655]/40 text-[#ff4655] rounded-none uppercase text-[10px] tracking-widest px-2.5">
-                                <IconChartBar className="size-3 mr-1" />
-                                ANALYTICS
-                            </Badge>
-                            <Button asChild size="sm" variant="ghost" className="h-6 text-[9px] uppercase tracking-wider text-muted-foreground border border-white/5 hover:bg-white/5 rounded-none font-mono px-2 py-0">
-                                <Link href="/dashboard/forms">
-                                    <IconArrowLeft className="size-3 mr-1" />
-                                    DASHBOARD
-                                </Link>
-                            </Button>
+                    <div className="flex items-center gap-3">
+                        <Button asChild variant="ghost" size="sm" className="cursor-pointer">
+                            <Link href="/dashboard/forms">
+                                <IconArrowLeft className="size-4" />
+                            </Link>
+                        </Button>
+                        <div>
+                            <h1 className="text-xl font-semibold tracking-tight">Analytics</h1>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                                Monitor submissions, visibility, and respondent statistics
+                            </p>
                         </div>
-                        <h1 className="mt-2 text-2xl font-bold uppercase tracking-wide text-white">RESPONSE ANALYTICS HUD</h1>
-                        <p className="text-[10px] uppercase text-muted-foreground font-mono">
-                            MONITOR SUBMISSIONS OVER TIME, VISIBILITY PROFILES, AND RESPONDENT STATS
-                        </p>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-3">
                         <Select value={activeFormId} onValueChange={setSelectedId}>
-                            <SelectTrigger className="w-full lg:w-80 bg-[#0f1218] border-border/40 text-white rounded-none font-mono text-xs uppercase focus:ring-[#ff4655]">
+                            <SelectTrigger className="w-full lg:w-72 text-sm cursor-pointer">
                                 <SelectValue placeholder="Choose form" />
                             </SelectTrigger>
-                            <SelectContent className="bg-[#0f1218] border-border/50 text-white rounded-none">
+                            <SelectContent>
                                 {forms.map((f) => (
-                                    <SelectItem key={f.id} value={f.id} className="uppercase text-xs focus:bg-[#ff4655]/25">
+                                    <SelectItem key={f.id} value={f.id} className="text-sm cursor-pointer">
                                         {f.title}
                                     </SelectItem>
                                 ))}
@@ -133,152 +123,128 @@ export function AnalyticsConsole() {
                         <Button
                             onClick={handleCsvExport}
                             disabled={responses.length === 0}
-                            className="val-btn-cyan h-9 font-bold px-4 hover:scale-[1.01]"
+                            variant="outline"
+                            size="sm"
+                            className="cursor-pointer"
                         >
                             <IconDownload className="size-4 mr-1.5" />
-                            EXPORT CSV
+                            Export CSV
                         </Button>
                     </div>
                 </div>
             </section>
 
-            {error || analyticsError || responsesError ? (
-                <div className="border border-[#ff4655]/40 bg-[#ff4655]/10 text-[#ff4655] p-3 text-xs uppercase font-mono">
+            {(error || analyticsError || responsesError) && (
+                <div className="border border-border bg-card text-destructive p-3 text-sm rounded-xl">
                     {error?.message ?? analyticsError?.message ?? responsesError?.message}
                 </div>
-            ) : null}
+            )}
 
             {isLoading ? (
                 <div className="grid gap-4 lg:grid-cols-4">
                     {[1, 2, 3, 4].map((item) => (
-                        <div key={item} className="h-28 animate-pulse border border-border/30 bg-[#0d1117] val-border-notch" />
+                        <div key={item} className="h-24 animate-pulse border border-border bg-card rounded-xl" />
                     ))}
                 </div>
             ) : !activeForm ? (
-                <div className="val-card-cyan p-10 text-center space-y-3">
-                    <h2 className="val-font-heading text-base text-white">NO FORMS ACTIVE</h2>
-                    <p className="text-xs text-muted-foreground uppercase font-mono leading-relaxed w-full mx-auto">
+                <div className="bg-card border border-border rounded-xl p-10 text-center space-y-3">
+                    <h2 className="text-base font-semibold">No Forms Yet</h2>
+                    <p className="text-sm text-muted-foreground">
                         Create your first form or seed survey data to see analytics.
                     </p>
-                    <Button asChild className="val-btn-cyan py-4 font-bold text-xs mt-3">
-                        <Link href="/dashboard/forms">CREATE A NEW FORM</Link>
+                    <Button asChild className="cursor-pointer">
+                        <Link href="/dashboard/forms">Create a New Form</Link>
                     </Button>
                 </div>
             ) : (
                 <>
-                    {/* METRIC COMMAND TILES */}
+                    {/* Metrics */}
                     <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                        <Metric
-                            label="TOTAL SUBMISSIONS"
-                            value={(analytics?.totalSubmissions ?? 0).toString()}
-                            accent="red"
-                        />
-                        <Metric
-                            label="RESPONSE LIMIT"
-                            value={analytics?.responseLimit?.toString() ?? "UNLIMITED"}
-                            accent="cyan"
-                        />
-                        <Metric
-                            label="REMAINING RESPONSES"
-                            value={analytics?.remainingResponses?.toString() ?? "UNLIMITED"}
-                            accent="cyan"
-                        />
-                        <Metric
-                            label="COMPLETION RATE"
-                            value={`${Math.round((analytics?.completionRate ?? 0) * 100)}%`}
-                            accent="red"
-                        />
+                        <MetricCard label="Total Submissions" value={(analytics?.totalSubmissions ?? 0).toString()} />
+                        <MetricCard label="Response Limit" value={analytics?.responseLimit?.toString() ?? "∞"} />
+                        <MetricCard label="Remaining" value={analytics?.remainingResponses?.toString() ?? "∞"} />
+                        <MetricCard label="Completion Rate" value={`${Math.round((analytics?.completionRate ?? 0) * 100)}%`} />
                     </section>
 
-                    {/* RESPONSE VISUAL GRID */}
-                    <section className="grid gap-6 xl:grid-cols-[1fr_440px]">
-
-                        {/* Daily activity line statistics */}
-                        <div className="val-card-cyan p-4 flex flex-col justify-between min-h-[360px]">
-                            <div className="flex items-center justify-between border-b border-border/20 pb-3 mb-4">
+                    {/* Activity Chart & Submissions */}
+                    <section className="grid gap-4 xl:grid-cols-[1fr_400px]">
+                        {/* Bar Chart */}
+                        <div className="bg-card border border-border rounded-xl p-5">
+                            <div className="flex items-center justify-between pb-3 mb-4 border-b border-border">
                                 <div>
-                                    <h2 className="val-font-heading text-xs text-[#00f0ff]">SUBMISSIONS OVER TIME</h2>
-                                    <p className="text-[10px] text-muted-foreground uppercase font-mono mt-0.5">{activeForm.title}</p>
+                                    <h2 className="text-sm font-medium flex items-center gap-2">
+                                        <IconChartBar className="size-4 text-muted-foreground" />
+                                        Submissions Over Time
+                                    </h2>
+                                    <p className="text-xs text-muted-foreground mt-0.5">{activeForm.title}</p>
                                 </div>
-                                <IconTargetArrow className="size-5 text-[#ff4655] animate-pulse" />
                             </div>
 
-                            <div className="flex-1 flex items-end gap-3 border-b border-white/5 border-l border-white/5 p-4 min-h-[220px]">
+                            <div className="flex items-end gap-2 min-h-[240px] p-2">
                                 {(analytics?.responsesByDay.length
                                     ? analytics.responsesByDay
-                                    : [{ date: "NO DATA", count: 0 }]
+                                    : [{ date: "No data", count: 0 }]
                                 ).map((item) => {
                                     const max = Math.max(
                                         ...(analytics?.responsesByDay.map((day) => day.count) ?? [1]),
                                         1,
                                     );
-                                    const barHeight = Math.max((item.count / max) * 100, item.count ? 12 : 4);
+                                    const barHeight = Math.max((item.count / max) * 200, item.count ? 16 : 4);
                                     return (
                                         <div key={item.date} className="flex-1 flex flex-col items-center gap-2 group cursor-pointer">
-                                            <div className="text-[9px] font-mono text-[#00f0ff] opacity-0 group-hover:opacity-100 transition-opacity">
-                                                {item.count} SUB
+                                            <div className="text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                                                {item.count}
                                             </div>
                                             <div
-                                                className="w-full bg-gradient-to-t from-[#ff4655]/20 to-[#ff4655] border-t border-[#ff4655] group-hover:scale-y-[1.05] transition-all origin-bottom"
-                                                style={{
-                                                    height: `${barHeight}px`,
-                                                }}
+                                                className="w-full bg-zinc-700 rounded-t-sm group-hover:bg-zinc-500 transition-colors"
+                                                style={{ height: `${barHeight}px` }}
                                             />
-                                            <span className="max-w-[70px] truncate text-[9px] uppercase font-mono text-muted-foreground text-center">
+                                            <span className="max-w-[70px] truncate text-[10px] text-muted-foreground text-center">
                                                 {item.date.slice(5)}
                                             </span>
                                         </div>
                                     );
                                 })}
                             </div>
-                            <div className="pt-3 text-[9px] text-muted-foreground font-mono uppercase flex justify-between">
-                                <span>* Group hover bars to reveal specific subcount</span>
-                                <span>LIVE DATA</span>
-                            </div>
                         </div>
 
-                        {/* Recent submissions list */}
-                        <div className="val-card-red p-4 flex flex-col justify-between min-h-[360px]">
-                            <div className="flex items-center justify-between border-b border-border/20 pb-3 mb-4">
+                        {/* Recent Submissions */}
+                        <div className="bg-card border border-border rounded-xl p-5">
+                            <div className="flex items-center justify-between pb-3 mb-4 border-b border-border">
                                 <div>
-                                    <h2 className="val-font-heading text-xs text-[#ff4655]">SUBMISSIONS LOG</h2>
-                                    <p className="text-[10px] text-muted-foreground uppercase font-mono mt-0.5">LATEST RESPONSES RECEIVED</p>
+                                    <h2 className="text-sm font-medium flex items-center gap-2">
+                                        <IconDatabase className="size-4 text-muted-foreground" />
+                                        Submissions Log
+                                    </h2>
+                                    <p className="text-xs text-muted-foreground mt-0.5">{responses.length} responses</p>
                                 </div>
-                                <IconDatabase className="size-5 text-[#00f0ff] animate-pulse" />
                             </div>
 
-                            <div className="flex-1 max-h-[320px] overflow-y-auto space-y-2 pr-1">
+                            <div className="max-h-[320px] overflow-y-auto space-y-2 pr-1">
                                 {responses.length === 0 ? (
-                                    <div className="text-center py-12 uppercase text-[10px] font-mono text-muted-foreground">
+                                    <div className="text-center py-12 text-sm text-muted-foreground">
                                         No responses received yet.
                                     </div>
                                 ) : (
                                     responses.map((response, index) => (
-                                        <div key={response.id} className="border border-white/5 bg-black/30 p-3 space-y-2">
+                                        <div key={response.id} className="border border-border bg-background rounded-lg p-3 space-y-1.5">
                                             <div className="flex items-center justify-between gap-2">
-                                                <span className="truncate text-xs font-mono font-bold text-white uppercase">
-                                                    {response.respondentEmail ?? `ANONYMOUS RESPONDENT #${responses.length - index}`}
+                                                <span className="truncate text-sm font-medium">
+                                                    {response.respondentEmail ?? `Anonymous #${responses.length - index}`}
                                                 </span>
-                                                <Badge className="bg-[#00f0ff]/10 text-[#00f0ff] border-none text-[8px] uppercase tracking-widest rounded-none">
+                                                <Badge variant="secondary" className="text-[10px] shrink-0">
                                                     {response.status}
                                                 </Badge>
                                             </div>
-                                            <div className="flex justify-between items-center text-[9px] text-muted-foreground font-mono">
-                                                <span>SUBMITTED AT: {response.submittedAt ? new Date(response.submittedAt).toLocaleString() : "N/A"}</span>
-                                            </div>
+                                            <p className="text-xs text-muted-foreground">
+                                                {response.submittedAt ? new Date(response.submittedAt).toLocaleString() : "N/A"}
+                                            </p>
                                             {response.answers.length > 0 && (
-                                                <div className="border-t border-white/5 pt-2 space-y-1">
+                                                <div className="border-t border-border pt-1.5 space-y-0.5">
                                                     {response.answers.slice(0, 3).map((answer) => (
-                                                        <p
-                                                            key={answer.fieldId}
-                                                            className="truncate text-[9px] font-mono text-muted-foreground"
-                                                        >
-                                                            <span className="text-[#ff4655] uppercase">{answer.fieldKey}:</span>{" "}
-                                                            <span className="text-white">
-                                                                {Array.isArray(answer.value)
-                                                                    ? answer.value.join(", ")
-                                                                    : String(answer.value)}
-                                                            </span>
+                                                        <p key={answer.fieldId} className="truncate text-xs text-muted-foreground">
+                                                            <span className="font-medium text-foreground">{answer.fieldKey}:</span>{" "}
+                                                            {Array.isArray(answer.value) ? answer.value.join(", ") : String(answer.value)}
                                                         </p>
                                                     ))}
                                                 </div>
@@ -295,28 +261,11 @@ export function AnalyticsConsole() {
     );
 }
 
-function Metric({ label, value, accent }: { label: string; value: string; accent: "red" | "cyan" }) {
-    const isRed = accent === "red";
+function MetricCard({ label, value }: { label: string; value: string }) {
     return (
-        <div
-            className={`border bg-[#0d1117] p-4 flex flex-col justify-between val-border-notch h-28 relative overflow-hidden group hover:scale-[1.02] transition`}
-            style={{
-                borderLeft: isRed ? "4px solid #ff4655" : "4px solid #00f0ff",
-                borderColor: isRed ? "rgba(255,70,85,0.2)" : "rgba(0,240,255,0.2)",
-            }}
-        >
-            <div className="absolute top-0 right-0 w-[40px] h-[40px] opacity-10 flex items-center justify-center translate-x-2 -translate-y-2 rotate-45 bg-white/20 select-none">
-                <IconBolt className="size-6 text-white" />
-            </div>
-            <p
-                className="text-2xl font-bold font-mono tracking-wider"
-                style={{ color: isRed ? "#ff4655" : "#00f0ff" }}
-            >
-                {value}
-            </p>
-            <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-mono font-bold mt-2 leading-none">
-                {label}
-            </p>
+        <div className="bg-card border border-border rounded-xl p-4">
+            <p className="text-2xl font-bold tracking-tight">{value}</p>
+            <p className="text-xs text-muted-foreground mt-1">{label}</p>
         </div>
     );
 }
