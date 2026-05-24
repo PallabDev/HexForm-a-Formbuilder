@@ -36,7 +36,7 @@ export function TiptapEditor({ value, onChange, placeholder }: TiptapEditorProps
         },
         editorProps: {
             attributes: {
-                class: "prose prose-invert max-w-none focus:outline-none min-h-[120px] p-3 text-xs text-zinc-100 font-mono",
+                class: "prose prose-invert max-w-none focus:outline-none min-h-[120px] p-3 text-sm text-foreground font-mono [&_h1]:text-2xl [&_h1]:font-bold [&_h2]:text-xl [&_h2]:font-bold [&_p]:text-sm",
             },
         },
     });
@@ -51,16 +51,15 @@ export function TiptapEditor({ value, onChange, placeholder }: TiptapEditorProps
     if (!editor) return null;
 
     return (
-        <div className="border border-border bg-[#0F172A] rounded-[3px] overflow-hidden focus-within:ring-1 focus-within:ring-primary">
+        <div className="border border-border bg-background rounded-md overflow-hidden focus-within:ring-1 focus-within:ring-primary">
             {/* Toolbar */}
-            <div className="flex flex-wrap items-center gap-1 border-b border-border bg-[#1E293B] p-1.5">
+            <div className="flex flex-wrap items-center gap-1 border-b border-border bg-muted/50 p-1.5">
                 <button
                     type="button"
-                    onClick={() => editor.chain().focus().toggleBold().run()}
-                    className={`p-1.5 rounded-[2px] transition ${
+                    className={`p-1.5 rounded-md transition ${
                         editor.isActive("bold")
-                            ? "bg-[#7C3AED] text-white"
-                            : "text-[#94A3B8] hover:text-[#E2E8F0] hover:bg-[#0F172A]"
+                            ? "bg-primary text-primary-foreground"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
                     }`}
                     title="Bold"
                 >
@@ -69,10 +68,10 @@ export function TiptapEditor({ value, onChange, placeholder }: TiptapEditorProps
                 <button
                     type="button"
                     onClick={() => editor.chain().focus().toggleItalic().run()}
-                    className={`p-1.5 rounded-[2px] transition ${
+                    className={`p-1.5 rounded-md transition ${
                         editor.isActive("italic")
-                            ? "bg-[#7C3AED] text-white"
-                            : "text-[#94A3B8] hover:text-[#E2E8F0] hover:bg-[#0F172A]"
+                            ? "bg-primary text-primary-foreground"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
                     }`}
                     title="Italic"
                 >
@@ -81,10 +80,10 @@ export function TiptapEditor({ value, onChange, placeholder }: TiptapEditorProps
                 <button
                     type="button"
                     onClick={() => editor.chain().focus().toggleStrike().run()}
-                    className={`p-1.5 rounded-[2px] transition ${
+                    className={`p-1.5 rounded-md transition ${
                         editor.isActive("strike")
-                            ? "bg-[#7C3AED] text-white"
-                            : "text-[#94A3B8] hover:text-[#E2E8F0] hover:bg-[#0F172A]"
+                            ? "bg-primary text-primary-foreground"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
                     }`}
                     title="Strikethrough"
                 >
@@ -96,10 +95,10 @@ export function TiptapEditor({ value, onChange, placeholder }: TiptapEditorProps
                 <button
                     type="button"
                     onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-                    className={`p-1.5 rounded-[2px] transition ${
+                    className={`p-1.5 rounded-md transition ${
                         editor.isActive("heading", { level: 1 })
-                            ? "bg-[#7C3AED] text-white"
-                            : "text-[#94A3B8] hover:text-[#E2E8F0] hover:bg-[#0F172A]"
+                            ? "bg-primary text-primary-foreground"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
                     }`}
                     title="Heading 1"
                 >
@@ -108,10 +107,10 @@ export function TiptapEditor({ value, onChange, placeholder }: TiptapEditorProps
                 <button
                     type="button"
                     onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-                    className={`p-1.5 rounded-[2px] transition ${
+                    className={`p-1.5 rounded-md transition ${
                         editor.isActive("heading", { level: 2 })
-                            ? "bg-[#7C3AED] text-white"
-                            : "text-[#94A3B8] hover:text-[#E2E8F0] hover:bg-[#0F172A]"
+                            ? "bg-primary text-primary-foreground"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
                     }`}
                     title="Heading 2"
                 >
@@ -123,10 +122,10 @@ export function TiptapEditor({ value, onChange, placeholder }: TiptapEditorProps
                 <button
                     type="button"
                     onClick={() => editor.chain().focus().toggleBulletList().run()}
-                    className={`p-1.5 rounded-[2px] transition ${
+                    className={`p-1.5 rounded-md transition ${
                         editor.isActive("bulletList")
-                            ? "bg-[#7C3AED] text-white"
-                            : "text-[#94A3B8] hover:text-[#E2E8F0] hover:bg-[#0F172A]"
+                            ? "bg-primary text-primary-foreground"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
                     }`}
                     title="Bullet List"
                 >
@@ -135,10 +134,10 @@ export function TiptapEditor({ value, onChange, placeholder }: TiptapEditorProps
                 <button
                     type="button"
                     onClick={() => editor.chain().focus().toggleOrderedList().run()}
-                    className={`p-1.5 rounded-[2px] transition ${
+                    className={`p-1.5 rounded-md transition ${
                         editor.isActive("orderedList")
-                            ? "bg-[#7C3AED] text-white"
-                            : "text-[#94A3B8] hover:text-[#E2E8F0] hover:bg-[#0F172A]"
+                            ? "bg-primary text-primary-foreground"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
                     }`}
                     title="Numbered List"
                 >
@@ -150,10 +149,10 @@ export function TiptapEditor({ value, onChange, placeholder }: TiptapEditorProps
                 <button
                     type="button"
                     onClick={() => editor.chain().focus().toggleBlockquote().run()}
-                    className={`p-1.5 rounded-[2px] transition ${
+                    className={`p-1.5 rounded-md transition ${
                         editor.isActive("blockquote")
-                            ? "bg-[#7C3AED] text-white"
-                            : "text-[#94A3B8] hover:text-[#E2E8F0] hover:bg-[#0F172A]"
+                            ? "bg-primary text-primary-foreground"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
                     }`}
                     title="Blockquote"
                 >
@@ -162,10 +161,10 @@ export function TiptapEditor({ value, onChange, placeholder }: TiptapEditorProps
                 <button
                     type="button"
                     onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-                    className={`p-1.5 rounded-[2px] transition ${
+                    className={`p-1.5 rounded-md transition ${
                         editor.isActive("codeBlock")
-                            ? "bg-[#7C3AED] text-white"
-                            : "text-[#94A3B8] hover:text-[#E2E8F0] hover:bg-[#0F172A]"
+                            ? "bg-primary text-primary-foreground"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
                     }`}
                     title="Code Block"
                 >
@@ -174,7 +173,7 @@ export function TiptapEditor({ value, onChange, placeholder }: TiptapEditorProps
             </div>
 
             {/* Editor Content */}
-            <div className="bg-[#0F172A] border-t-0 min-h-[120px]">
+            <div className="bg-background border-t-0 min-h-[120px]">
                 <EditorContent editor={editor} />
             </div>
         </div>

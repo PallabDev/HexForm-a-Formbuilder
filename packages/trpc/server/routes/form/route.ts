@@ -1068,6 +1068,7 @@ export const formRouter = router({
     .output(analyticsOutputModel)
     .query(async ({ input, ctx }) => {
       const form = await ensureCreatorForm(input.formId, ctx.user.id);
+      const subPlan = await getUserSubscriptionPlan(ctx.user.id);
 
       const [total] = await db
         .select({ value: count() })
@@ -1085,16 +1086,14 @@ export const formRouter = router({
         .orderBy(sql`to_char(${formSubmissionsTable.submittedAt}, 'YYYY-MM-DD')`);
 
       const totalSubmissions = total?.value ?? 0;
+      const responseLimit = subPlan.submissionLimit;
 
       return {
         formId: form.id,
         totalSubmissions,
         completionRate: totalSubmissions > 0 ? 1 : 0,
-        responseLimit: form.submissionLimit,
-        remainingResponses:
-          form.submissionLimit === null
-            ? null
-            : Math.max(form.submissionLimit - totalSubmissions, 0),
+        responseLimit,
+        remainingResponses: Math.max(responseLimit - totalSubmissions, 0),
         responsesByDay: rows.map((row) => ({
           date: row.date,
           count: row.value,

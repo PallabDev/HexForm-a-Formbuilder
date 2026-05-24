@@ -39,6 +39,7 @@ export const subscriptionOutputModel = z.object({
   formLimit: z.number(),
   submissionLimit: z.number(),
   currentPeriodEnd: z.string().nullable(),
+  cancelAtPeriodEnd: z.boolean().optional(),
   usage: z.object({
     activeForms: z.number(),
   }),

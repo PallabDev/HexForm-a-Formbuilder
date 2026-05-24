@@ -443,7 +443,7 @@ export function FormBuilderConsole({ formId }: FormBuilderConsoleProps) {
             </header>
 
             {/* 2-column workspace */}
-            <div className="grid gap-6 xl:grid-cols-[300px_1fr]">
+            <div className="grid gap-6 xl:grid-cols-[350px_1fr]">
 
                 {/* Left sidebar: Form Details */}
                 <aside className="space-y-4">

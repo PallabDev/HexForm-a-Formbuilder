@@ -88,11 +88,7 @@ export function DashboardOverview() {
                     label="Active Forms"
                     description="Total non-archived forms"
                     value={isLoading ? "..." : totalForms.toString()}
-                    action={
-                        <Link href="/dashboard/forms" className="text-xs text-blue-400 hover:underline">
-                            View All
-                        </Link>
-                    }
+
                 />
                 <StatCard
                     icon={<IconUsers className="size-5" />}
@@ -100,11 +96,6 @@ export function DashboardOverview() {
                     label="Total Responses"
                     description="Across all active forms"
                     value={isLoading ? "..." : totalResponses.toString()}
-                    action={
-                        <Link href="/dashboard/analytics" className="text-xs text-green-400 hover:underline">
-                            View Stats
-                        </Link>
-                    }
                 />
                 <StatCard
                     icon={<IconExternalLink className="size-5" />}
@@ -112,11 +103,6 @@ export function DashboardOverview() {
                     label="Published"
                     description="Live & accepting responses"
                     value={isLoading ? "..." : publishedCount.toString()}
-                    action={
-                        <Link href="/dashboard/forms" className="text-xs text-orange-400 hover:underline">
-                            Manage
-                        </Link>
-                    }
                 />
                 <StatCard
                     icon={<IconFileText className="size-5" />}
@@ -124,112 +110,78 @@ export function DashboardOverview() {
                     label="Drafts"
                     description="Not yet published"
                     value={isLoading ? "..." : draftCount.toString()}
-                    action={
-                        <Link href="/dashboard/forms" className="text-xs text-purple-400 hover:underline">
-                            + New Form
-                        </Link>
-                    }
                 />
             </section>
 
-            {/* Chart & Seed Grid */}
-            <section className="grid gap-4 lg:grid-cols-3">
-                {/* Chart */}
-                <div className="lg:col-span-2 bg-card border border-border rounded-xl p-5">
-                    <div className="flex items-center justify-between mb-4">
-                        <div>
-                            <h2 className="text-sm font-medium">Response Activity</h2>
-                            <p className="text-xs text-muted-foreground mt-0.5">Weekly submission overview</p>
-                        </div>
-                    </div>
-
-                    <div className="h-[240px] w-full">
-                        {mounted ? (
-                            <ResponsiveContainer width="100%" height="100%">
-                                <AreaChart
-                                    data={aggregatedChartData}
-                                    margin={{ top: 5, right: 5, left: -25, bottom: 0 }}
-                                >
-                                    <defs>
-                                        <linearGradient id="colorDashSub" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#a1a1aa" stopOpacity={0.15} />
-                                            <stop offset="95%" stopColor="#a1a1aa" stopOpacity={0} />
-                                        </linearGradient>
-                                    </defs>
-                                    <CartesianGrid stroke="#1c1c1e" strokeDasharray="3 3" vertical={false} />
-                                    <XAxis
-                                        dataKey="day"
-                                        stroke="#3f3f46"
-                                        fontSize={11}
-                                        tickLine={false}
-                                        axisLine={false}
-                                        dy={8}
-                                    />
-                                    <YAxis
-                                        stroke="#3f3f46"
-                                        fontSize={11}
-                                        tickLine={false}
-                                        axisLine={false}
-                                        allowDecimals={false}
-                                    />
-                                    <Tooltip
-                                        content={({ active, payload }) => {
-                                            if (active && payload && payload.length) {
-                                                return (
-                                                    <div className="bg-card border border-border rounded-lg px-3 py-2 text-xs shadow-xl">
-                                                        <p className="font-medium">{payload[0]?.payload.day}</p>
-                                                        <p className="text-muted-foreground mt-0.5">
-                                                            {payload[0]?.value} responses
-                                                        </p>
-                                                    </div>
-                                                );
-                                            }
-                                            return null;
-                                        }}
-                                    />
-                                    <Area
-                                        type="monotone"
-                                        dataKey="responses"
-                                        stroke="#71717a"
-                                        strokeWidth={1.5}
-                                        fillOpacity={1}
-                                        fill="url(#colorDashSub)"
-                                    />
-                                </AreaChart>
-                            </ResponsiveContainer>
-                        ) : (
-                            <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground">
-                                Loading chart...
-                            </div>
-                        )}
+            {/* Chart */}
+            {/* Chart */}
+            <section className="bg-card border border-border rounded-xl p-5">
+                <div className="flex items-center justify-between mb-4">
+                    <div>
+                        <h2 className="text-sm font-medium">Response Activity</h2>
+                        <p className="text-xs text-muted-foreground mt-0.5">Weekly submission overview</p>
                     </div>
                 </div>
 
-                {/* Seed Box */}
-                <div className="bg-card border border-border rounded-xl p-5 flex flex-col justify-between">
-                    <div className="space-y-3">
-                        <div className="size-10 rounded-lg bg-orange-500/10 flex items-center justify-center">
-                            <IconFlame className="size-5 text-orange-400" />
+                <div className="h-[240px] w-full">
+                    {mounted ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart
+                                data={aggregatedChartData}
+                                margin={{ top: 5, right: 5, left: -25, bottom: 0 }}
+                            >
+                                <defs>
+                                    <linearGradient id="colorDashSub" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#a1a1aa" stopOpacity={0.15} />
+                                        <stop offset="95%" stopColor="#a1a1aa" stopOpacity={0} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid stroke="#1c1c1e" strokeDasharray="3 3" vertical={false} />
+                                <XAxis
+                                    dataKey="day"
+                                    stroke="#3f3f46"
+                                    fontSize={11}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    dy={8}
+                                />
+                                <YAxis
+                                    stroke="#3f3f46"
+                                    fontSize={11}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    allowDecimals={false}
+                                />
+                                <Tooltip
+                                    content={({ active, payload }) => {
+                                        if (active && payload && payload.length) {
+                                            return (
+                                                <div className="bg-card border border-border rounded-lg px-3 py-2 text-xs shadow-xl">
+                                                    <p className="font-medium">{payload[0]?.payload.day}</p>
+                                                    <p className="text-muted-foreground mt-0.5">
+                                                        {payload[0]?.value} responses
+                                                    </p>
+                                                </div>
+                                            );
+                                        }
+                                        return null;
+                                    }}
+                                />
+                                <Area
+                                    type="monotone"
+                                    dataKey="responses"
+                                    stroke="#71717a"
+                                    strokeWidth={1.5}
+                                    fillOpacity={1}
+                                    fill="url(#colorDashSub)"
+                                />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    ) : (
+                        <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground">
+                            Loading chart...
                         </div>
-                        <h3 className="font-medium text-sm">Quick Start Templates</h3>
-                        <p className="text-xs text-muted-foreground leading-relaxed">
-                            Load professional feedback forms with realistic sample responses to explore the platform instantly.
-                        </p>
-                    </div>
-
-                    <Button
-                        onClick={handleSeedMissions}
-                        disabled={seedMissions.isPending}
-                        variant="outline"
-                        className="mt-6 w-full cursor-pointer"
-                    >
-                        {seedMissions.isPending ? (
-                            <IconLoader className="size-4 animate-spin mr-2" />
-                        ) : (
-                            <IconFlame className="size-4 mr-2" />
-                        )}
-                        Load Samples
-                    </Button>
+                    )}
                 </div>
             </section>
 
@@ -301,14 +253,12 @@ function StatCard({
     label,
     description,
     value,
-    action,
 }: {
     icon: React.ReactNode;
     iconBg: string;
     label: string;
     description: string;
-    value: string;
-    action: React.ReactNode;
+    value: string
 }) {
     return (
         <div className="bg-card border border-border rounded-xl p-5 flex flex-col justify-between min-h-[140px]">
@@ -323,7 +273,6 @@ function StatCard({
             </div>
             <div className="flex items-end justify-between mt-2">
                 <p className="text-2xl font-bold tracking-tight">{value}</p>
-                {action}
             </div>
         </div>
     );

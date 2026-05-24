@@ -46,6 +46,7 @@ export function FormAnalyticsConsole({ formId }: FormAnalyticsConsoleProps) {
     const { responses, isLoading: isResponsesLoading, error: responsesError } = useFormResponses({ formId, limit: 100 }, Boolean(formId));
 
     const [selectedSubmission, setSelectedSubmission] = useState<any | null>(null);
+    const [isTrendModalOpen, setIsTrendModalOpen] = useState(false);
 
     const handleCsvExport = () => {
         if (!form || responses.length === 0) {
@@ -160,75 +161,7 @@ export function FormAnalyticsConsole({ formId }: FormAnalyticsConsoleProps) {
             </section>
 
             {/* Chart & Table */}
-            <section className="grid gap-4 lg:grid-cols-2">
-                {/* Chart */}
-                <div className="bg-card border border-border rounded-xl p-5">
-                    <div className="flex items-center justify-between pb-3 mb-4 border-b border-border">
-                        <div>
-                            <h2 className="text-sm font-medium flex items-center gap-2">
-                                <IconChartBar className="size-4 text-muted-foreground" />
-                                Submissions Trend
-                            </h2>
-                            <p className="text-xs text-muted-foreground mt-0.5">Daily submissions over time</p>
-                        </div>
-                    </div>
-
-                    <div className="h-[240px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart
-                                data={chartData}
-                                margin={{ top: 5, right: 5, left: -25, bottom: 0 }}
-                            >
-                                <defs>
-                                    <linearGradient id="colorAnalyticsSub" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#a1a1aa" stopOpacity={0.15} />
-                                        <stop offset="95%" stopColor="#a1a1aa" stopOpacity={0} />
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid stroke="#1c1c1e" strokeDasharray="3 3" vertical={false} />
-                                <XAxis
-                                    dataKey="date"
-                                    stroke="#3f3f46"
-                                    fontSize={11}
-                                    tickLine={false}
-                                    axisLine={false}
-                                    dy={8}
-                                />
-                                <YAxis
-                                    stroke="#3f3f46"
-                                    fontSize={11}
-                                    tickLine={false}
-                                    axisLine={false}
-                                    allowDecimals={false}
-                                />
-                                <Tooltip
-                                    content={({ active, payload }) => {
-                                        if (active && payload && payload.length) {
-                                            return (
-                                                <div className="bg-card border border-border rounded-lg px-3 py-2 text-xs shadow-xl">
-                                                    <p className="font-medium">{payload[0]?.payload.date}</p>
-                                                    <p className="text-muted-foreground mt-0.5">
-                                                        {payload[0]?.value} submissions
-                                                    </p>
-                                                </div>
-                                            );
-                                        }
-                                        return null;
-                                    }}
-                                />
-                                <Area
-                                    type="monotone"
-                                    dataKey="Submissions"
-                                    stroke="#71717a"
-                                    strokeWidth={1.5}
-                                    fillOpacity={1}
-                                    fill="url(#colorAnalyticsSub)"
-                                />
-                            </AreaChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
-
+            <section>
                 {/* Responses Table */}
                 <div className="bg-card border border-border rounded-xl p-5">
                     <div className="flex items-center justify-between pb-3 mb-4 border-b border-border">
@@ -236,6 +169,14 @@ export function FormAnalyticsConsole({ formId }: FormAnalyticsConsoleProps) {
                             <h2 className="text-sm font-medium flex items-center gap-2">
                                 <IconDatabase className="size-4 text-muted-foreground" />
                                 Responses
+                                <Badge 
+                                    variant="secondary" 
+                                    className="ml-2 cursor-pointer hover:bg-primary/20 transition-colors"
+                                    onClick={() => setIsTrendModalOpen(true)}
+                                >
+                                    <IconChartBar className="size-3 mr-1" />
+                                    Trends
+                                </Badge>
                             </h2>
                             <p className="text-xs text-muted-foreground mt-0.5">{responses.length} total responses</p>
                         </div>
@@ -259,10 +200,10 @@ export function FormAnalyticsConsole({ formId }: FormAnalyticsConsoleProps) {
                         ) : (
                             <table className="w-full border-collapse text-sm">
                                 <thead>
-                                    <tr className="border-b border-border bg-card text-left">
-                                        <th className="p-3 text-xs font-medium text-muted-foreground w-12">#</th>
+                                    <tr className="border-b border-border bg-muted/30 text-left">
+                                        <th className="p-3 text-xs font-medium text-muted-foreground w-12 border-r border-border">#</th>
                                         {form.fields.map((field) => (
-                                            <th key={field.id} className="p-3 text-xs font-medium text-muted-foreground">
+                                            <th key={field.id} className="p-3 text-xs font-medium text-muted-foreground border-r border-border">
                                                 {field.label}
                                             </th>
                                         ))}
@@ -274,9 +215,9 @@ export function FormAnalyticsConsole({ formId }: FormAnalyticsConsoleProps) {
                                         <tr
                                             key={response.id}
                                             onClick={() => setSelectedSubmission(response)}
-                                            className="border-b border-border/50 hover:bg-muted/50 transition-colors cursor-pointer"
+                                            className="border-b border-border/50 hover:bg-muted/80 transition-colors cursor-pointer even:bg-muted/10"
                                         >
-                                            <td className="p-3 text-xs text-muted-foreground">{index + 1}</td>
+                                            <td className="p-3 text-xs text-muted-foreground border-r border-border/50">{index + 1}</td>
                                             {form.fields.map((field) => {
                                                 const ansObj = response.answers.find((a: any) => a.fieldId === field.id);
                                                 const val = ansObj?.value;
@@ -285,7 +226,7 @@ export function FormAnalyticsConsole({ formId }: FormAnalyticsConsoleProps) {
                                                     display = Array.isArray(val) ? val.join(", ") : String(val);
                                                 }
                                                 return (
-                                                    <td key={field.id} className="p-3 text-xs truncate max-w-[180px]">
+                                                    <td key={field.id} className="p-3 text-xs truncate max-w-[180px] border-r border-border/50">
                                                         {display}
                                                     </td>
                                                 );
@@ -349,6 +290,76 @@ export function FormAnalyticsConsole({ formId }: FormAnalyticsConsoleProps) {
                             </div>
                         </div>
                     )}
+                </DialogContent>
+            </Dialog>
+
+            {/* Submissions Trend Modal */}
+            <Dialog open={isTrendModalOpen} onOpenChange={setIsTrendModalOpen}>
+                <DialogContent className="bg-card border-border rounded-xl max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle className="text-base flex items-center gap-2">
+                            <IconChartBar className="size-5 text-muted-foreground" />
+                            Submissions Trend
+                        </DialogTitle>
+                        <DialogDescription className="text-xs text-muted-foreground">
+                            Daily submissions over time
+                        </DialogDescription>
+                    </DialogHeader>
+                    
+                    <div className="h-[300px] w-full mt-4">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart
+                                data={chartData}
+                                margin={{ top: 5, right: 5, left: -25, bottom: 0 }}
+                            >
+                                <defs>
+                                    <linearGradient id="colorAnalyticsSub" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#a1a1aa" stopOpacity={0.15} />
+                                        <stop offset="95%" stopColor="#a1a1aa" stopOpacity={0} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid stroke="#1c1c1e" strokeDasharray="3 3" vertical={false} />
+                                <XAxis
+                                    dataKey="date"
+                                    stroke="#3f3f46"
+                                    fontSize={11}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    dy={8}
+                                />
+                                <YAxis
+                                    stroke="#3f3f46"
+                                    fontSize={11}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    allowDecimals={false}
+                                />
+                                <Tooltip
+                                    content={({ active, payload }) => {
+                                        if (active && payload && payload.length) {
+                                            return (
+                                                <div className="bg-card border border-border rounded-lg px-3 py-2 text-xs shadow-xl">
+                                                    <p className="font-medium">{payload[0]?.payload.date}</p>
+                                                    <p className="text-muted-foreground mt-0.5">
+                                                        {payload[0]?.value} submissions
+                                                    </p>
+                                                </div>
+                                            );
+                                        }
+                                        return null;
+                                    }}
+                                />
+                                <Area
+                                    type="monotone"
+                                    dataKey="Submissions"
+                                    stroke="#71717a"
+                                    strokeWidth={1.5}
+                                    fillOpacity={1}
+                                    fill="url(#colorAnalyticsSub)"
+                                />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
                 </DialogContent>
             </Dialog>
         </main>

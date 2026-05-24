@@ -200,6 +200,7 @@ export const productRouter = router({
           formLimit: freePlan?.formLimit ?? 5,
           submissionLimit: freePlan?.submissionLimitPerForm ?? 100,
           currentPeriodEnd: null,
+          cancelAtPeriodEnd: false,
           usage: {
             activeForms: formsCount?.value ?? 0,
           },
@@ -228,6 +229,7 @@ export const productRouter = router({
           formLimit: freePlan?.formLimit ?? 5,
           submissionLimit: freePlan?.submissionLimitPerForm ?? 100,
           currentPeriodEnd: null,
+          cancelAtPeriodEnd: false,
           usage: {
             activeForms: formsCount?.value ?? 0,
           },
@@ -248,6 +250,7 @@ export const productRouter = router({
         formLimit: plan?.formLimit ?? 999999,
         submissionLimit: plan?.submissionLimitPerForm ?? 100,
         currentPeriodEnd: sub.currentPeriodEnd ? sub.currentPeriodEnd.toISOString() : null,
+        cancelAtPeriodEnd: sub.cancelledAt !== null,
         usage: {
           activeForms: formsCount?.value ?? 0,
         },
