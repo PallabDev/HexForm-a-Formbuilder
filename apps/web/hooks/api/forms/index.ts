@@ -114,6 +114,16 @@ export const useDeleteField = () => {
   });
 };
 
+export const useReorderFields = () => {
+  const utils = trpc.useUtils();
+
+  return trpc.form.reorderFields.useMutation({
+    onSuccess: async (form) => {
+      await utils.form.getMineById.invalidate({ id: form.id });
+    },
+  });
+};
+
 export const usePublicForm = (slug: string, enabled = true) => {
   const query = trpc.form.getPublicBySlug.useQuery(
     { slug },
@@ -155,4 +165,17 @@ export const useFormAnalytics = (formId: string, enabled = true) => {
     analytics: query.data,
     ...query,
   };
+};
+
+export const useSeedMissions = () => {
+  const utils = trpc.useUtils();
+
+  return trpc.form.seedMissions.useMutation({
+    onSuccess: async () => {
+      await Promise.all([
+        utils.form.listMine.invalidate(),
+        utils.form.explorePublic.invalidate(),
+      ]);
+    },
+  });
 };

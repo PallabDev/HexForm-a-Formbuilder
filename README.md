@@ -1,135 +1,79 @@
-# Turborepo starter
+# HexForm // Tactical Form Ops SaaS
 
-This Turborepo starter is maintained by the Turborepo core team.
+HexForm is a highly stylized, production-style dynamic form builder SaaS themed around a **modern Valorant combat interface**. Built on a high-performance Monorepo stack, it allows creators to draft tactical forms, configure rich validation protocols, toggle public/unlisted visibilities, and acquire robust response analytics.
 
-## Using this example
+---
 
-Run the following command:
+## 🎮 Visual Theme: Valorant Game UI
+HexForm adopts a premium military-grade gaming HUD aesthetic:
+- **Core Palette**: Deep charcoal-black (`#0f1923`), tactical signal red (`#ff4655`), ice-cyan (`#00f0ff`), and monospaced indicators.
+- **Visual Design**: Chamfered angular edges, diagonal grid backing patterns, glowing text active input shadows, and crosshair overlays.
+- **Sync Signals**: A neon green/amber top HUD broadcast indicator displaying `[SYSTEM STATUS: ONLINE / SYNCED]` reassuring users that every keypress auto-saves seamlessly.
 
-```sh
-npx create-turbo@latest
-```
+---
 
-## What's inside?
+## 🚀 Key Features
 
-This Turborepo includes the following packages/apps:
+1. **Auto-Saving Command Center**: Text inputs, titles, descriptions, checkboxes, and rating limits save automatically in the background using debounced typing triggers and focus-blur sync pipelines.
+2. **Tactical Question Reordering**: Change order indexes on-the-fly using Up (`▲`) and Down (`▼`) arrow shifting buttons. Synced safely on the database layer avoiding unique constraints.
+3. **Typeform-Style Respondent Flow**: Sleek single-sector slide animations with dynamic keyboard ENTER navigation, star combat ranks, checklist selectors, and receipt envelope logs at the end.
+4. **Combat Intel Analytics**: Line graphs showing submission counts over time, monospace records of detailed captured submissions, and instant CSV spreadsheet extraction.
+5. **One-Click Demo Seeder**: Instantly populate the creator deck with 3 premium pre-configured themed forms and rich historical captures.
 
-### Apps and Packages
+---
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
+## 🔑 Demo Credentials
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
+Judges can instantly log in to review all dashboard components using these default credentials:
+- **Email Address**: `judge@hexform.com`
+- **Access Password**: `password123`
 
-### Utilities
+*(Alternatively, you can register a new custom account using the sign-up panel)*
 
-This Turborepo has some additional tools already setup for you:
+---
 
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
+## 📊 API Documentation & Scalar Specs
+The backend routes are fully documentable under OpenAPI specification and served interactively by a Scalar HUD console:
+- **Scalar Interface Link**: [http://localhost:3001/docs](http://localhost:3001/docs)
+- **Raw OpenAPI JSON**: [http://localhost:3001/openapi.json](http://localhost:3001/openapi.json)
 
-### Build
+---
 
-To build all apps and packages, run the following command:
+## 📁 Monorepo Workspace Directory
+The repository runs in a Turborepo environment with split applications and shared packages:
+- **`apps/web`**: Next.js App Router frontend dashboard and public respondent flows.
+- **`apps/api`**: Express backend serving type-safe OpenAPI endpoints and trpc handlers.
+- **`packages/database`**: Drizzle schema definitions and database connection models.
+- **`packages/trpc`**: Client/Server safe type definitions and validation schemas.
 
-```
-cd my-turborepo
+---
 
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build
+## 🛠️ Local Setup Instructions
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build
-yarn dlx turbo build
-pnpm exec turbo build
-```
+1. **Environment Setup**:
+   Execute the link copy setup script to configure symlinks and copy default variables:
+   ```bash
+   ./setup.sh
+   ```
 
-You can build a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
+2. **Acquire Dependencies**:
+   Install monorepo package workspace dependencies:
+   ```bash
+   pnpm install
+   ```
 
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build --filter=docs
+3. **Database Migration**:
+   Generate and deploy local PostgreSQL schemas:
+   ```bash
+   pnpm run db:generate
+   pnpm run db:migrate
+   ```
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build --filter=docs
-yarn exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-```
+4. **Launch Development Command Deck**:
+   Execute the turborepo concurrent servers (web served on `:3000` and API served on `:3001`):
+   ```bash
+   pnpm run dev
+   ```
 
-### Develop
-
-To develop all apps and packages, run the following command:
-
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev
-yarn exec turbo dev
-pnpm exec turbo dev
-```
-
-You can develop a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
-
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev --filter=web
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev --filter=web
-yarn exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-```
-
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo login
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo login
-yarn exec turbo login
-pnpm exec turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo link
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo link
-yarn exec turbo link
-pnpm exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.com/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.com/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.com/docs/reference/configuration)
-- [CLI Usage](https://turborepo.com/docs/reference/command-line-reference)
+5. **Seed Demo Data**:
+   Log in with `judge@hexform.com` / `password123` and click the **ONE-CLICK SEED DEMO DECK** button inside the System Health panel to instantly fill the registry!

@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { and, asc, count, db, desc, eq, inArray, sql } from "@repo/database";
 import { randomUUID } from "node:crypto";
+import { z } from "zod";
 import {
   formFieldOptionsTable,
   formFieldsTable,
@@ -8,6 +9,150 @@ import {
   formSubmissionAnswersTable,
   formSubmissionsTable,
 } from "@repo/database/models/form";
+import { pricingPlansTable, userSubscriptionsTable } from "@repo/database/models/pricing";
+
+async function getUserSubscriptionPlan(userId: string) {
+  const existingPlans = await db.select().from(pricingPlansTable).limit(1);
+  if (existingPlans.length === 0) {
+    const defaultPlans = [
+      {
+        code: "free",
+        name: "Free Plan",
+        description: "Ideal for personal projects and quick surveys",
+        priceInPaise: 0,
+        currency: "INR",
+        billingInterval: "MONTHLY" as const,
+        formLimit: 5,
+        submissionLimitPerForm: 100,
+        sortOrder: 0,
+      },
+      {
+        code: "premium_399",
+        name: "Premium Professional",
+        description: "Perfect for growing businesses and creators",
+        priceInPaise: 39900,
+        currency: "INR",
+        billingInterval: "MONTHLY" as const,
+        formLimit: 250,
+        submissionLimitPerForm: 500,
+        sortOrder: 1,
+      },
+      {
+        code: "enterprise_799",
+        name: "Enterprise Unlimited",
+        description: "For scaling platforms requiring full capabilities",
+        priceInPaise: 79900,
+        currency: "INR",
+        billingInterval: "MONTHLY" as const,
+        formLimit: null, // unlimited
+        submissionLimitPerForm: 2000,
+        sortOrder: 2,
+      },
+    ];
+    for (const plan of defaultPlans) {
+      await db.insert(pricingPlansTable).values({
+        code: plan.code,
+        name: plan.name,
+        description: plan.description,
+        priceInPaise: plan.priceInPaise,
+        currency: plan.currency,
+        billingInterval: plan.billingInterval,
+        formLimit: plan.formLimit,
+        submissionLimitPerForm: plan.submissionLimitPerForm,
+        sortOrder: plan.sortOrder,
+      });
+    }
+  }
+
+  const [sub] = await db
+    .select()
+    .from(userSubscriptionsTable)
+    .where(
+      and(
+        eq(userSubscriptionsTable.userId, userId),
+        eq(userSubscriptionsTable.status, "ACTIVE")
+      )
+    )
+    .limit(1);
+
+  let planCode = "free";
+  let formLimit = 5;
+  let submissionLimit = 100;
+
+  if (sub) {
+    const now = new Date();
+    if (sub.currentPeriodEnd && sub.currentPeriodEnd <= now) {
+      await db
+        .update(userSubscriptionsTable)
+        .set({ status: "EXPIRED" })
+        .where(eq(userSubscriptionsTable.id, sub.id));
+
+      const [freePlan] = await db
+        .select()
+        .from(pricingPlansTable)
+        .where(eq(pricingPlansTable.code, "free"))
+        .limit(1);
+
+      if (freePlan) {
+        formLimit = freePlan.formLimit ?? 5;
+        submissionLimit = freePlan.submissionLimitPerForm;
+      }
+    } else {
+      const [plan] = await db
+        .select()
+        .from(pricingPlansTable)
+        .where(eq(pricingPlansTable.id, sub.planId))
+        .limit(1);
+
+      if (plan) {
+        planCode = plan.code;
+        formLimit = plan.formLimit ?? 999999;
+        submissionLimit = plan.submissionLimitPerForm;
+      }
+    }
+  } else {
+    const [freePlan] = await db
+      .select()
+      .from(pricingPlansTable)
+      .where(eq(pricingPlansTable.code, "free"))
+      .limit(1);
+
+    if (freePlan) {
+      formLimit = freePlan.formLimit ?? 5;
+      submissionLimit = freePlan.submissionLimitPerForm;
+    }
+  }
+
+  return {
+    planCode,
+    formLimit,
+    submissionLimit,
+  };
+}
+
+async function generateUniqueFieldKey(formId: string, label: string) {
+  const baseKey = normalizeKey(label) || "field";
+  let candidate = baseKey;
+  let suffix = 1;
+
+  while (true) {
+    const [existing] = await db
+      .select({ id: formFieldsTable.id })
+      .from(formFieldsTable)
+      .where(
+        and(
+          eq(formFieldsTable.formId, formId),
+          eq(formFieldsTable.labelKey, candidate)
+        )
+      )
+      .limit(1);
+
+    if (!existing) return candidate;
+
+    suffix += 1;
+    candidate = `${baseKey}_${suffix}`;
+  }
+}
 
 import { authenticatedProcedure, publicProcedure, router } from "../../trpc";
 import { generatePath } from "../../utils/path-generator";
@@ -28,6 +173,7 @@ import {
   publicFormOutputModel,
   publishFormInputModel,
   responseListInputModel,
+  reorderFieldsInputModel,
   submitFormInputModel,
   submitFormOutputModel,
   updateFieldInputModel,
@@ -401,6 +547,24 @@ export const formRouter = router({
     .input(createFormInputModel)
     .output(formOutputModel)
     .mutation(async ({ input, ctx }) => {
+      const subPlan = await getUserSubscriptionPlan(ctx.user.id);
+      const [activeFormsCount] = await db
+        .select({ value: count() })
+        .from(formsTable)
+        .where(
+          and(
+            eq(formsTable.ownerId, ctx.user.id),
+            sql`${formsTable.status} != 'ARCHIVED'`
+          )
+        );
+
+      if ((activeFormsCount?.value ?? 0) >= subPlan.formLimit) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: `You have reached the form creation limit under your plan (${subPlan.formLimit} forms). Please upgrade your subscription in the Billing console.`,
+        });
+      }
+
       const slug = await createUniqueSlug(input.title, input.slug);
       const [form] = await db
         .insert(formsTable)
@@ -557,12 +721,14 @@ export const formRouter = router({
     .mutation(async ({ input, ctx }) => {
       await ensureCreatorForm(input.formId, ctx.user.id);
 
+      const labelKey = input.labelKey ?? (await generateUniqueFieldKey(input.formId, input.label));
+
       const [field] = await db
         .insert(formFieldsTable)
         .values({
           formId: input.formId,
           label: input.label,
-          labelKey: input.labelKey ?? normalizeKey(input.label),
+          labelKey,
           description: input.description,
           placeholder: input.placeholder,
           isRequired: input.isRequired ?? false,
@@ -687,6 +853,37 @@ export const formRouter = router({
       return existing;
     }),
 
+  reorderFields: authenticatedProcedure
+    .meta({ openapi: { method: "POST", path: getPath("/fields/reorder"), tags: TAGS } })
+    .input(reorderFieldsInputModel)
+    .output(formOutputModel)
+    .mutation(async ({ input, ctx }) => {
+      const form = await ensureCreatorForm(input.formId, ctx.user.id);
+
+      await db.transaction(async (tx) => {
+        for (let i = 0; i < input.fieldIds.length; i++) {
+          const fieldId = input.fieldIds[i];
+          if (!fieldId) continue;
+          await tx
+            .update(formFieldsTable)
+            .set({ order: -i - 1 })
+            .where(and(eq(formFieldsTable.id, fieldId), eq(formFieldsTable.formId, form.id)));
+        }
+
+        for (let i = 0; i < input.fieldIds.length; i++) {
+          const fieldId = input.fieldIds[i];
+          if (!fieldId) continue;
+          await tx
+            .update(formFieldsTable)
+            .set({ order: i })
+            .where(and(eq(formFieldsTable.id, fieldId), eq(formFieldsTable.formId, form.id)));
+        }
+      });
+
+      const fields = await getFormFields(form.id);
+      return mapForm(form, fields);
+    }),
+
   getPublicBySlug: publicProcedure
     .meta({ openapi: { method: "POST", path: getPath("/public/get"), tags: TAGS } })
     .input(getPublicFormInputModel)
@@ -761,10 +958,18 @@ export const formRouter = router({
         });
       }
 
+      const subPlan = await getUserSubscriptionPlan(form.ownerId);
       if (form.submissionLimit !== null && form.submissionCount >= form.submissionLimit) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "This form has reached its response limit.",
+        });
+      }
+
+      if (form.submissionCount >= subPlan.submissionLimit) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: `This form has reached its response limit under the owner's plan (${subPlan.submissionLimit} responses).`,
         });
       }
 
@@ -895,5 +1100,363 @@ export const formRouter = router({
           count: row.value,
         })),
       };
+    }),
+
+  seedMissions: authenticatedProcedure
+    .meta({ openapi: { method: "POST", path: getPath("/seed"), tags: TAGS } })
+    .input(z.void().optional())
+    .output(z.object({ success: z.boolean(), count: z.number() }))
+    .mutation(async ({ ctx }) => {
+      const ownerId = ctx.user.id;
+
+      const oldForms = await db
+        .select({ id: formsTable.id })
+        .from(formsTable)
+        .where(
+          and(
+            eq(formsTable.ownerId, ownerId),
+            inArray(formsTable.slug, [
+              "customer-satisfaction-survey",
+              "product-feature-requests",
+              "candidate-job-application",
+            ]),
+          ),
+        );
+
+      if (oldForms.length > 0) {
+        const oldFormIds = oldForms.map((f) => f.id);
+        const oldFields = await db
+          .select({ id: formFieldsTable.id })
+          .from(formFieldsTable)
+          .where(inArray(formFieldsTable.formId, oldFormIds));
+
+        if (oldFields.length > 0) {
+          const oldFieldIds = oldFields.map((f) => f.id);
+          await db
+            .delete(formFieldOptionsTable)
+            .where(inArray(formFieldOptionsTable.fieldId, oldFieldIds));
+          await db.delete(formFieldsTable).where(inArray(formFieldsTable.formId, oldFormIds));
+        }
+
+        const oldSubmissions = await db
+          .select({ id: formSubmissionsTable.id })
+          .from(formSubmissionsTable)
+          .where(inArray(formSubmissionsTable.formId, oldFormIds));
+
+        if (oldSubmissions.length > 0) {
+          const oldSubIds = oldSubmissions.map((s) => s.id);
+          await db
+            .delete(formSubmissionAnswersTable)
+            .where(inArray(formSubmissionAnswersTable.submissionId, oldSubIds));
+          await db
+            .delete(formSubmissionsTable)
+            .where(inArray(formSubmissionsTable.formId, oldFormIds));
+        }
+
+        await db.delete(formsTable).where(inArray(formsTable.id, oldFormIds));
+      }
+
+      const seedForm = async (
+        title: string,
+        slug: string,
+        description: string,
+        visibility: "PUBLIC" | "UNLISTED",
+        fieldsData: Array<{
+          label: string;
+          type: FieldType;
+          isRequired: boolean;
+          selectMode?: SelectMode;
+          options?: string[];
+          validation?: Record<string, unknown>;
+        }>,
+        submissionsData: Array<{
+          email: string;
+          daysAgo: number;
+          answers: Record<string, AnswerValue>;
+        }>,
+      ) => {
+        const [form] = await db
+          .insert(formsTable)
+          .values({
+            ownerId,
+            title,
+            slug,
+            description,
+            status: "PUBLISHED",
+            visibility,
+            isAcceptingSubmissions: true,
+            submissionLimit: 100,
+            publishedAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000),
+          })
+          .returning();
+
+        if (!form) return;
+
+        let totalSubCount = 0;
+
+        for (let i = 0; i < fieldsData.length; i++) {
+          const f = fieldsData[i]!;
+          const labelKey = normalizeKey(f.label);
+
+          const [field] = await db
+            .insert(formFieldsTable)
+            .values({
+              formId: form.id,
+              label: f.label,
+              labelKey,
+              type: f.type,
+              order: i,
+              isRequired: f.isRequired,
+              selectMode: f.selectMode ?? null,
+              validation: f.validation ?? {},
+            })
+            .returning();
+
+          if (field && f.options && f.options.length > 0) {
+            await db.insert(formFieldOptionsTable).values(
+              f.options.map((opt, idx) => ({
+                fieldId: field.id,
+                label: opt,
+                value: slugify(opt),
+                order: idx,
+                isDefault: false,
+              })),
+            );
+          }
+        }
+
+        const dbFields = await getFormFields(form.id);
+
+        for (const sub of submissionsData) {
+          const submittedAt = new Date(Date.now() - sub.daysAgo * 24 * 60 * 60 * 1000);
+          const [submission] = await db
+            .insert(formSubmissionsTable)
+            .values({
+              formId: form.id,
+              respondentEmail: sub.email,
+              status: "COMPLETED",
+              submittedAt,
+            })
+            .returning();
+
+          if (submission) {
+            totalSubCount++;
+            const answerRows: any[] = [];
+            for (const f of dbFields) {
+              const val = sub.answers[f.labelKey];
+              if (val !== undefined && val !== null) {
+                let finalVal = val;
+                if (f.type === "SELECT") {
+                  if (f.selectMode === "MULTIPLE" && Array.isArray(val)) {
+                    finalVal = val.map((v) => slugify(v));
+                  } else if (typeof val === "string") {
+                    finalVal = slugify(val);
+                  }
+                }
+
+                answerRows.push({
+                  submissionId: submission.id,
+                  fieldId: f.id,
+                  fieldKey: f.labelKey,
+                  value: finalVal,
+                });
+              }
+            }
+
+            if (answerRows.length > 0) {
+              await db.insert(formSubmissionAnswersTable).values(answerRows);
+            }
+          }
+        }
+
+        await db
+          .update(formsTable)
+          .set({ submissionCount: totalSubCount })
+          .where(eq(formsTable.id, form.id));
+      };
+
+      // 1. Customer Satisfaction Survey
+      await seedForm(
+        "Customer Satisfaction Survey",
+        "customer-satisfaction-survey",
+        "Analyze customer support performance, channel effectiveness, and general support satisfaction ratings.",
+        "PUBLIC",
+        [
+          { label: "Customer Full Name", type: "TEXT", isRequired: true },
+          {
+            label: "Preferred support channel",
+            type: "SELECT",
+            isRequired: true,
+            selectMode: "SINGLE",
+            options: ["Email", "Live Chat", "Phone", "Discord", "Self-Service Docs"],
+          },
+          {
+            label: "Support experience rating",
+            type: "RATING",
+            isRequired: true,
+            validation: { min: 1, max: 5 },
+          },
+          { label: "Would you recommend our product to others?", type: "YES_NO", isRequired: false },
+        ],
+        [
+          {
+            email: "john.doe@company.com",
+            daysAgo: 3,
+            answers: {
+              customer_full_name: "John Doe",
+              preferred_support_channel: "Email",
+              support_experience_rating: 5,
+              would_you_recommend_our_product_to_others: true,
+            },
+          },
+          {
+            email: "sarah.smith@enterprise.net",
+            daysAgo: 2,
+            answers: {
+              customer_full_name: "Sarah Smith",
+              preferred_support_channel: "Live Chat",
+              support_experience_rating: 4,
+              would_you_recommend_our_product_to_others: true,
+            },
+          },
+          {
+            email: "boaster@fnatic.com",
+            daysAgo: 2,
+            answers: {
+              customer_full_name: "James Boaster",
+              preferred_support_channel: "Phone",
+              support_experience_rating: 5,
+              would_you_recommend_our_product_to_others: true,
+            },
+          },
+          {
+            email: "tenz@sentinels.gg",
+            daysAgo: 1,
+            answers: {
+              customer_full_name: "Tyson TenZ",
+              preferred_support_channel: "Live Chat",
+              support_experience_rating: 4,
+              would_you_recommend_our_product_to_others: true,
+            },
+          },
+          {
+            email: "yay@bleed.gg",
+            daysAgo: 0,
+            answers: {
+              customer_full_name: "Jacob Yay",
+              preferred_support_channel: "Email",
+              support_experience_rating: 3,
+              would_you_recommend_our_product_to_others: false,
+            },
+          },
+        ],
+      );
+
+      // 2. Product Feature Request Questionnaire
+      await seedForm(
+        "Product Feature Request Questionnaire",
+        "product-feature-requests",
+        "Vote on upcoming features, UI customization preferences, and product roadmap items.",
+        "PUBLIC",
+        [
+          { label: "Business Email Address", type: "EMAIL", isRequired: true },
+          {
+            label: "Priority roadmap area",
+            type: "SELECT",
+            isRequired: true,
+            selectMode: "SINGLE",
+            options: ["Analytics Dashboard", "Integration Extensions", "Custom Themes", "Team Workspaces"],
+          },
+          {
+            label: "Preferred incentive rewards",
+            type: "SELECT",
+            isRequired: true,
+            selectMode: "MULTIPLE",
+            options: ["Beta Access Priority", "Free Upgrade Credits", "Community Sprays", "Premium API Limits"],
+          },
+          {
+            label: "Product design satisfaction",
+            type: "RATING",
+            isRequired: false,
+            validation: { min: 1, max: 5 },
+          },
+        ],
+        [
+          {
+            email: "client.a@industry.com",
+            daysAgo: 3,
+            answers: {
+              business_email_address: "client.a@industry.com",
+              priority_roadmap_area: "Custom Themes",
+              preferred_incentive_rewards: ["Beta Access Priority", "Premium API Limits"],
+              product_design_satisfaction: 4,
+            },
+          },
+          {
+            email: "admin@growthops.io",
+            daysAgo: 1,
+            answers: {
+              business_email_address: "admin@growthops.io",
+              priority_roadmap_area: "Analytics Dashboard",
+              preferred_incentive_rewards: ["Free Upgrade Credits", "Premium API Limits"],
+              product_design_satisfaction: 5,
+            },
+          },
+          {
+            email: "dev@saasflow.net",
+            daysAgo: 0,
+            answers: {
+              business_email_address: "dev@saasflow.net",
+              priority_roadmap_area: "Team Workspaces",
+              preferred_incentive_rewards: ["Free Upgrade Credits"],
+              product_design_satisfaction: 5,
+            },
+          },
+        ],
+      );
+
+      // 3. Candidate Job Application
+      await seedForm(
+        "Candidate Job Application",
+        "candidate-job-application",
+        "Collect software developer application details, resume links, and engineering profile statements.",
+        "UNLISTED",
+        [
+          { label: "Applicant Full Name", type: "TEXT", isRequired: true },
+          { label: "Professional summary statement", type: "LONG_TEXT", isRequired: true },
+          { label: "Resume deck presentation link", type: "FILE_URL", isRequired: false },
+          {
+            label: "Primary tech stack category",
+            type: "SELECT",
+            isRequired: true,
+            selectMode: "SINGLE",
+            options: ["React & Next.js", "Node.js & tRPC", "Postgres & Drizzle", "Kubernetes & Docker"],
+          },
+        ],
+        [
+          {
+            email: "coder.v@cybernet.net",
+            daysAgo: 2,
+            answers: {
+              applicant_full_name: "Vincent Coder",
+              professional_summary_statement: "Experienced full-stack engineer specialized in Next.js applications and relational schemas.",
+              resume_deck_presentation_link: "https://arasaka.co.jp/deck.pdf",
+              primary_tech_stack_category: "React & Next.js",
+            },
+          },
+          {
+            email: "staff.reed@security.gov",
+            daysAgo: 0,
+            answers: {
+              applicant_full_name: "Solomon Reed",
+              professional_summary_statement: "Systems architect focused on Docker deployment grids and Postgres query validation.",
+              resume_deck_presentation_link: "https://dogtown.crypt/deck.pdf",
+              primary_tech_stack_category: "Kubernetes & Docker",
+            },
+          },
+        ],
+      );
+
+      return { success: true, count: 3 };
     }),
 });

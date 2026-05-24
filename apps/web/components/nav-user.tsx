@@ -8,6 +8,7 @@ import {
     IconUserCircle,
 } from "@tabler/icons-react"
 
+import Link from "next/link"
 import {
     Avatar,
     AvatarFallback,
@@ -84,18 +85,28 @@ export function NavUser({
                         </DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <DropdownMenuGroup>
-                            <DropdownMenuItem>
-                                <IconUserCircle />
-                                Account
+                            <DropdownMenuItem asChild>
+                                <Link href="/dashboard/billing" className="flex items-center w-full">
+                                    <IconUserCircle className="mr-2 size-4" />
+                                    <span>Account</span>
+                                </Link>
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
-                                <IconCreditCard />
-                                Upgrade
+                            <DropdownMenuItem asChild>
+                                <Link href="/dashboard/billing" className="flex items-center w-full">
+                                    <IconCreditCard className="mr-2 size-4" />
+                                    <span>Billing</span>
+                                </Link>
                             </DropdownMenuItem>
                         </DropdownMenuGroup>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem>
-                            <IconLogout />
+                        <DropdownMenuItem onClick={() => {
+                            // Clear cookies or redirect
+                            if (typeof window !== "undefined") {
+                                document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+                                window.location.href = "/signin";
+                            }
+                        }}>
+                            <IconLogout className="mr-2 size-4" />
                             Log out
                         </DropdownMenuItem>
                     </DropdownMenuContent>

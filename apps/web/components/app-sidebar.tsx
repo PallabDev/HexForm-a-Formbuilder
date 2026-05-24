@@ -12,6 +12,7 @@ import {
 
 import { NavMain } from "~/components/nav-main";
 import { NavUser } from "~/components/nav-user";
+import { useUser } from "~/hooks/api/auth";
 import {
   Sidebar,
   SidebarContent,
@@ -23,14 +24,9 @@ import {
 } from "~/components/ui/sidebar";
 
 const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
   navMain: [
     {
-      title: "Command",
+      title: "Dashboard",
       url: "/dashboard",
       icon: IconDashboard,
     },
@@ -39,20 +35,18 @@ const data = {
       url: "/dashboard/forms",
       icon: IconForms,
     },
-    {
-      title: "Analytics",
-      url: "/dashboard/analytics",
-      icon: IconChartBar,
-    },
-    {
-      title: "Explore",
-      url: "/explore",
-      icon: IconWorld,
-    },
   ],
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { user } = useUser();
+
+  const activeUser = {
+    name: user?.fullName ?? "Syncing Profile...",
+    email: user?.email ?? "acquiring session...",
+    avatar: user?.profileImageUrl ?? "",
+  };
+
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
@@ -60,7 +54,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton asChild className="data-[slot=sidebar-menu-button]:p-1.5!">
               <a href="#">
-                <IconDeviceGamepad2 className="size-5! text-primary" />
+                <IconForms className="size-5! text-primary" />
                 <span className="text-base font-semibold">HexForm</span>
               </a>
             </SidebarMenuButton>
@@ -71,7 +65,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavMain items={data.navMain} />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser user={activeUser} />
       </SidebarFooter>
     </Sidebar>
   );

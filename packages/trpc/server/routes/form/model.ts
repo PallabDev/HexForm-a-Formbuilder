@@ -95,6 +95,11 @@ export const deleteFieldInputModel = z.object({
   formId: z.uuid(),
 });
 
+export const reorderFieldsInputModel = z.object({
+  formId: z.uuid(),
+  fieldIds: z.array(z.uuid()),
+});
+
 export const getPublicFormInputModel = z.object({
   slug: z.string().min(1).max(140),
 });
