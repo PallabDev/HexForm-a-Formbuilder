@@ -19,7 +19,7 @@ import {
 import { Input } from "~/components/ui/input"
 import { useSignup } from "~/hooks/api/auth"
 import Link from "next/link"
-import { useRouter } from "next/router"
+import { useRouter } from "next/navigation"
 
 export type SignupFormValues = {
     fullName: string
