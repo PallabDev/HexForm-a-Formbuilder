@@ -3,13 +3,10 @@
 import { useState, useEffect, useRef } from "react";
 import type React from "react";
 import {
-    IconCircleCheck,
-    IconLock,
     IconSend,
     IconChevronRight,
     IconChevronLeft,
     IconSparkles,
-    IconAlertCircle,
     IconArrowRight,
     IconCheck,
     IconStar,
@@ -23,7 +20,16 @@ import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Textarea } from "~/components/ui/textarea";
+import {
+    PublicFormBrandBar,
+    PublicFormError,
+    PublicFormLoading,
+    PublicFormReceipt,
+    formCardClass,
+    formShellClass,
+} from "~/components/forms/public-form-shell";
 import { usePublicForm, useSubmitForm } from "~/hooks/api/forms";
+import { cn } from "~/lib/utils";
 
 type AnswerValue = string | number | boolean | string[] | null;
 
@@ -126,7 +132,7 @@ class ConfettiParticle {
         this.x = canvasWidth / 2;
         this.y = canvasHeight + 20;
         this.size = Math.random() * 7 + 5;
-        const colors = ["#f97316", "#fb923c", "#34d399", "#10b981", "#fbbf24", "#f59e0b"];
+        const colors = ["#fb7185", "#f43f5e", "#34d399", "#10b981", "#fbbf24", "#a1a1aa"];
         this.color = colors[Math.floor(Math.random() * colors.length)]!;
         this.speedX = (Math.random() - 0.5) * 14;
         this.speedY = -(Math.random() * 14 + 10);
@@ -150,54 +156,6 @@ class ConfettiParticle {
         ctx.restore();
     }
 }
-
-const getThemeColors = (step: number, totalSteps: number) => {
-    if (step === -1) {
-        return {
-            bg: "from-amber-955/10 via-[#0b0c0f] to-[#08090b]",
-            btnBg: "from-amber-600 via-orange-600 to-amber-700 hover:from-amber-500 hover:via-orange-500 hover:to-amber-600",
-            btnShadow: "shadow-[0_4px_25px_rgba(245,158,11,0.15)]",
-            stroke: "#f59e0b",
-        };
-    }
-    if (step === totalSteps) {
-        return {
-            bg: "from-orange-955/10 via-[#0b0c0f] to-[#08090b]",
-            btnBg: "from-orange-600 via-amber-600 to-yellow-600 hover:from-orange-500 hover:via-amber-500 hover:to-yellow-500",
-            btnShadow: "shadow-[0_4px_25px_rgba(249,115,22,0.15)]",
-            stroke: "#f97316",
-        };
-    }
-
-    const stepThemes = [
-        {
-            bg: "from-emerald-955/10 via-[#0b0c0f] to-[#08090b]",
-            btnBg: "from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500",
-            btnShadow: "shadow-[0_4px_20px_rgba(16,185,129,0.1)]",
-            stroke: "#10b981",
-        },
-        {
-            bg: "from-orange-955/10 via-[#0b0c0f] to-[#08090b]",
-            btnBg: "from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500",
-            btnShadow: "shadow-[0_4px_20px_rgba(249,115,22,0.1)]",
-            stroke: "#f97316",
-        },
-        {
-            bg: "from-yellow-955/10 via-[#0b0c0f] to-[#08090b]",
-            btnBg: "from-yellow-600 to-amber-600 hover:from-yellow-500 hover:to-amber-500",
-            btnShadow: "shadow-[0_4px_20px_rgba(234,179,8,0.1)]",
-            stroke: "#eab308",
-        },
-        {
-            bg: "from-teal-955/10 via-[#0b0c0f] to-[#08090b]",
-            btnBg: "from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500",
-            btnShadow: "shadow-[0_4px_20px_rgba(20,184,166,0.1)]",
-            stroke: "#14b8a6",
-        }
-    ];
-
-    return stepThemes[step % stepThemes.length]!;
-};
 
 export function PublicFormClient({ slug }: { slug: string }) {
     const { form, isLoading, error } = usePublicForm(slug);
@@ -463,6 +421,20 @@ export function PublicFormClient({ slug }: { slug: string }) {
             return false;
         }
 
+        if (field.type === "EMAIL" && typeof val === "string" && val && !/^\S+@\S+\.\S+$/.test(val)) {
+            setErrorMessage(`${field.label} must be a valid email address.`);
+            return false;
+        }
+
+        if (field.type === "FILE_URL" && typeof val === "string" && val) {
+            try {
+                new URL(val);
+            } catch {
+                setErrorMessage(`${field.label} must be a valid URL.`);
+                return false;
+            }
+        }
+
         if ((field.type === "NUMBER" || field.type === "RATING") && typeof val === "number") {
             const validation = field.validation as any;
             if (field.type === "NUMBER") {
@@ -538,6 +510,22 @@ export function PublicFormClient({ slug }: { slug: string }) {
                 setCurrentStep(i);
                 setErrorMessage(`${field.label} is a required field.`);
                 return;
+            }
+
+            if (field.type === "EMAIL" && typeof val === "string" && val && !/^\S+@\S+\.\S+$/.test(val)) {
+                setCurrentStep(i);
+                setErrorMessage(`${field.label} must be a valid email address.`);
+                return;
+            }
+
+            if (field.type === "FILE_URL" && typeof val === "string" && val) {
+                try {
+                    new URL(val);
+                } catch {
+                    setCurrentStep(i);
+                    setErrorMessage(`${field.label} must be a valid URL.`);
+                    return;
+                }
             }
 
             if ((field.type === "TEXT" || field.type === "LONG_TEXT") && typeof val === "string") {
@@ -618,163 +606,70 @@ export function PublicFormClient({ slug }: { slug: string }) {
     }
 
     if (isLoading) {
-        return (
-            <main className="min-h-dvh flex items-center justify-center p-4 bg-[#0a0b0d]">
-                <div className="text-center space-y-4 animate-pulse">
-                    <div className="size-10 border-2 border-zinc-800 border-t-emerald-500 rounded-full animate-spin mx-auto" />
-                    <p className="text-xs text-zinc-500 font-semibold tracking-widest uppercase">Connecting...</p>
-                </div>
-            </main>
-        );
+        return <PublicFormLoading />;
     }
 
     if (error || !form) {
-        return (
-            <main className="min-h-dvh flex items-center justify-center p-4 bg-[#0a0b0d] text-zinc-100">
-                <div className="bg-zinc-900/40 backdrop-blur-xl border border-zinc-850 w-full max-w-md p-8 text-center space-y-6 rounded-3xl shadow-2xl">
-                    <div className="size-12 bg-orange-950/20 border border-orange-500/20 rounded-2xl flex items-center justify-center mx-auto">
-                        <IconAlertCircle className="size-6 text-orange-400" />
-                    </div>
-                    <h2 className="text-lg font-bold text-white tracking-tight">Form Closed</h2>
-                    <p className="text-xs text-zinc-400 leading-relaxed">
-                        {error?.message ?? "This form link is invalid, has expired, or is currently unavailable."}
-                    </p>
-                    <Button asChild variant="outline" className="w-full py-3 border-zinc-800 hover:bg-zinc-850 hover:text-white rounded-xl text-xs font-semibold cursor-pointer">
-                        <Link href="/explore">Return to Explore</Link>
-                    </Button>
-                </div>
-            </main>
-        );
+        return <PublicFormError message={error?.message} />;
     }
 
-    // Already Submitted View
+    const receiptActions = (
+        <div className="grid gap-3 sm:grid-cols-2">
+            <Button
+                type="button"
+                variant="outline"
+                className="rounded-md border-zinc-700"
+                onClick={() => {
+                    playSound("click");
+                    void navigator.clipboard.writeText(JSON.stringify(answers, null, 2));
+                    toast.success("Answers copied");
+                }}
+            >
+                Copy answers
+            </Button>
+            <Button asChild className="cta-primary rounded-md font-semibold">
+                <Link href="/explore">Explore forms</Link>
+            </Button>
+        </div>
+    );
+
     if (alreadySubmitted) {
         return (
-            <main className="min-h-dvh flex items-center justify-center p-4 md:p-6 text-zinc-100 bg-[#0a0b0d] relative overflow-hidden">
-                <div className="relative max-w-lg w-full bg-zinc-900/40 backdrop-blur-xl border border-zinc-850 p-6 md:p-8 text-center space-y-6 rounded-3xl shadow-2xl z-10">
-                    <div className="size-16 bg-emerald-950/20 border border-emerald-500/20 rounded-2xl flex items-center justify-center mx-auto shadow-sm">
-                        <IconCircleCheck className="size-8 text-emerald-400" />
-                    </div>
-
-                    <div className="space-y-2">
-                        <h2 className="text-2xl font-bold tracking-tight text-white">Response Already Recorded</h2>
-                        <p className="text-sm text-zinc-400">
-                            You have successfully completed <span className="text-zinc-200 font-semibold">{form.title}</span>. 
-                            Multiple submissions are disabled.
-                        </p>
-                    </div>
-
-                    <div className="border border-zinc-800 bg-zinc-950/40 rounded-2xl overflow-hidden shadow-inner">
-                        <div className="bg-zinc-900/60 px-4 py-2.5 border-b border-zinc-800 text-[10px] text-zinc-400 font-semibold tracking-wider uppercase text-left">
-                            Submitted Data Receipt
-                        </div>
-                        <div className="p-4 text-left space-y-3 max-h-[220px] overflow-y-auto pr-2 text-xs">
-                            {form.fields.map((f, idx) => {
-                                const val = answers[f.labelKey];
-                                let displayVal = "Empty";
-                                if (val !== undefined && val !== null && val !== "") {
-                                    displayVal = Array.isArray(val) ? val.join(", ") : String(val);
-                                }
-                                return (
-                                    <div key={f.id} className="flex justify-between gap-4 py-2 border-b border-zinc-850/50 last:border-0 last:pb-0">
-                                        <span className="text-zinc-400 font-medium truncate max-w-[200px]">
-                                            {idx + 1}. {f.label}
-                                        </span>
-                                        <span className="font-semibold text-zinc-200 text-right max-w-[220px] break-all">
-                                            {displayVal}
-                                        </span>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-
-                    <div className="pt-2 grid gap-3 sm:grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)]">
-                        <button
-                            onClick={() => {
-                                playSound("click");
-                                if (typeof window !== "undefined") {
-                                    navigator.clipboard.writeText(JSON.stringify(answers, null, 2));
-                                    toast.success("Answers copied!");
-                                }
-                            }}
-                            className="min-h-12 w-full rounded-xl border border-zinc-700 bg-zinc-800 px-4 py-3 text-center text-sm font-semibold text-zinc-200 transition-all hover:bg-zinc-700 cursor-pointer flex items-center justify-center"
-                        >
-                            Copy Answers
-                        </button>
-                        <Button asChild className="min-h-12 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm font-semibold text-zinc-300 transition-all hover:bg-zinc-900 cursor-pointer">
-                            <Link href="/explore">Explore Other Forms</Link>
-                        </Button>
-                    </div>
-                </div>
-            </main>
+            <PublicFormReceipt
+                title={form.title}
+                fields={form.fields}
+                answers={answers}
+                headline="Response already recorded"
+                description={
+                    <>
+                        You already submitted this form. Multiple responses are not allowed from this
+                        browser.
+                    </>
+                }
+            >
+                {receiptActions}
+            </PublicFormReceipt>
         );
     }
 
     if (done) {
         return (
-            <main className="min-h-dvh flex items-center justify-center p-4 md:p-6 text-zinc-100 bg-[#0a0b0d] relative overflow-hidden">
-                {/* 2.5s Short-lived Confetti canvas */}
-                <canvas ref={confettiCanvasRef} className="pointer-events-none absolute inset-0 z-50 w-full h-full" />
-
-                <div className="relative max-w-lg w-full bg-zinc-900/40 backdrop-blur-xl border border-zinc-850 p-6 md:p-8 text-center space-y-6 rounded-3xl shadow-2xl z-10 animate-in zoom-in-95 duration-300">
-                    <div className="size-16 bg-emerald-950/20 border border-emerald-500/20 rounded-2xl flex items-center justify-center mx-auto">
-                        <IconCircleCheck className="size-8 text-emerald-400 animate-pulse" />
-                    </div>
-
-                    <div className="space-y-2">
-                        <h2 className="text-2xl font-bold tracking-tight text-white animate-pulse">Form Submitted!</h2>
-                        <p className="text-sm text-zinc-400">
-                            Thank you! Your response has been recorded successfully.
-                        </p>
-                    </div>
-
-                    <div className="border border-zinc-800 bg-zinc-950/40 rounded-2xl overflow-hidden shadow-inner">
-                        <div className="bg-zinc-900/60 px-4 py-2.5 border-b border-zinc-800 text-[10px] text-zinc-400 font-semibold tracking-wider uppercase text-left">
-                            Submitted Data Receipt
-                        </div>
-                        <div className="p-4 text-left space-y-3 max-h-[200px] overflow-y-auto pr-2 text-xs">
-                            {form.fields.map((f, idx) => {
-                                const val = answers[f.labelKey];
-                                let displayVal = "Empty";
-                                if (val !== undefined && val !== null && val !== "") {
-                                    displayVal = Array.isArray(val) ? val.join(", ") : String(val);
-                                }
-                                return (
-                                    <div key={f.id} className="flex justify-between gap-4 py-2 border-b border-zinc-850/50 last:border-0 last:pb-0">
-                                        <span className="text-zinc-400 font-medium truncate max-w-[200px]">
-                                            {idx + 1}. {f.label}
-                                        </span>
-                                        <span className="font-semibold text-zinc-200 text-right max-w-[220px] break-all">{displayVal}</span>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-
-                    <div className="pt-2 grid gap-3 sm:grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)]">
-                        <button
-                            onClick={() => {
-                                playSound("click");
-                                if (typeof window !== "undefined") {
-                                    navigator.clipboard.writeText(JSON.stringify(answers, null, 2));
-                                    toast.success("Answers copied!");
-                                }
-                            }}
-                            className="min-h-12 w-full rounded-xl border border-zinc-700 bg-zinc-800 px-4 py-3 text-center text-sm font-semibold text-zinc-200 transition-all hover:bg-zinc-700 cursor-pointer flex items-center justify-center"
-                        >
-                            Copy Answers
-                        </button>
-                        <Button asChild className="min-h-12 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm font-semibold text-zinc-300 transition-all hover:bg-zinc-900 cursor-pointer">
-                            <Link href="/explore">Explore Other Forms</Link>
-                        </Button>
-                    </div>
-
-                    <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-semibold block">
-                        You can safely close this window
-                    </p>
-                </div>
-            </main>
+            <>
+                <canvas
+                    ref={confettiCanvasRef}
+                    className="pointer-events-none fixed inset-0 z-50 h-full w-full"
+                />
+                <PublicFormReceipt
+                    title={form.title}
+                    fields={form.fields}
+                    answers={answers}
+                    headline="Response submitted"
+                    description="Thank you — your answers were saved successfully."
+                >
+                    {receiptActions}
+                    <p className="text-center text-[10px] text-zinc-500">You can close this window.</p>
+                </PublicFormReceipt>
+            </>
         );
     }
 
@@ -784,70 +679,49 @@ export function PublicFormClient({ slug }: { slug: string }) {
         100,
     );
 
-    const theme = getThemeColors(currentStep, totalSteps);
+    const audioControl = (
+        <button
+            type="button"
+            onClick={toggleAudioMuted}
+            className="flex size-8 items-center justify-center rounded-md border border-zinc-700 bg-zinc-900 text-zinc-400 transition-colors hover:text-white"
+            title={audioMuted ? "Unmute sounds" : "Mute sounds"}
+        >
+            {audioMuted ? <IconVolumeOff className="size-4" /> : <IconVolume className="size-4" />}
+        </button>
+    );
 
     return (
-        <div className="min-h-dvh flex flex-col justify-between p-4 sm:p-6 md:p-8 bg-[#0b0c0f] relative overflow-hidden select-none text-zinc-100 transition-colors duration-1000">
-            {/* Dynamic themed background aura glow */}
-            <div className="absolute inset-0 z-0 pointer-events-none transition-all duration-1000 ease-in-out">
-                <div className={`absolute top-0 left-0 size-full bg-gradient-to-tr ${theme.bg} transition-all duration-1000`} />
-            </div>
-
-            {/* Resume Draft Greeting Card Modal */}
+        <div className={cn(formShellClass, "justify-between p-4 sm:p-6 md:p-8 select-none")}>
             {showResumeModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl animate-in fade-in duration-300">
-                    <div className="relative max-w-sm w-full bg-zinc-900 border border-zinc-850 p-6 rounded-3xl shadow-2xl text-center space-y-6">
-                        <div className="size-12 bg-amber-950/20 border border-amber-500/20 rounded-2xl flex items-center justify-center mx-auto">
-                            <IconSparkles className="size-6 text-amber-400 animate-bounce" />
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+                    <div className="w-full max-w-sm space-y-6 rounded-lg border border-zinc-800 bg-zinc-900 p-6 text-center shadow-xl">
+                        <div className="mx-auto flex size-12 items-center justify-center rounded-md border border-emerald-500/30 bg-emerald-500/10">
+                            <IconSparkles className="size-6 text-emerald-400" />
                         </div>
-
                         <div className="space-y-2">
-                            <h3 className="text-lg font-bold text-zinc-100 tracking-tight">Welcome back!</h3>
-                            <p className="text-xs text-zinc-400 leading-relaxed">
-                                We saved your progress for <span className="text-zinc-200 font-semibold">{form.title}</span>. 
-                                Would you like to resume or start fresh?
+                            <h3 className="text-lg font-semibold text-white">Resume your draft?</h3>
+                            <p className="text-sm leading-relaxed text-zinc-400">
+                                Saved progress for <span className="text-zinc-200">{form.title}</span>.
                             </p>
                         </div>
-
-                        <div className="grid grid-cols-2 gap-3 pt-1">
-                            <button
+                        <div className="grid grid-cols-2 gap-3">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="rounded-md border-zinc-700"
                                 onClick={handleDiscardDraft}
-                                className="w-full py-2.5 bg-zinc-950 border border-zinc-800 hover:bg-zinc-800 text-zinc-400 hover:text-white text-xs font-semibold rounded-xl transition-all cursor-pointer"
                             >
-                                Start Fresh
-                            </button>
-                            <button
-                                onClick={handleResumeDraft}
-                                className="w-full py-2.5 bg-amber-600 hover:bg-amber-500 text-zinc-950 text-xs font-bold rounded-xl shadow-md transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
-                            >
+                                Start fresh
+                            </Button>
+                            <Button type="button" className="cta-primary rounded-md font-semibold" onClick={handleResumeDraft}>
                                 Resume
-                            </button>
+                            </Button>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* Header */}
-            <header className="flex items-center justify-between border-b border-white/5 pb-4 max-w-2xl w-full mx-auto backdrop-blur-md bg-zinc-950/10 px-2 rounded-xl z-10">
-                <span className="text-xs sm:text-sm font-semibold tracking-wide text-zinc-200 truncate max-w-[200px] sm:max-w-md">
-                    {form.title || "Untitled form"}
-                </span>
-                
-                <div className="flex items-center gap-3">
-                    <button
-                        onClick={toggleAudioMuted}
-                        className="p-1.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-zinc-450 hover:text-white transition-all cursor-pointer size-8 flex items-center justify-center"
-                        title={audioMuted ? "Unmute sound clicks" : "Mute sound clicks"}
-                    >
-                        {audioMuted ? <IconVolumeOff className="size-4" /> : <IconVolume className="size-4 animate-pulse" />}
-                    </button>
-
-                    <Badge variant="outline" className="text-[9px] bg-zinc-950/30 border-zinc-800 text-zinc-400 font-semibold px-2 py-0.5 tracking-wider uppercase flex items-center gap-1 shadow-sm">
-                        <IconLock className="size-3" />
-                        Autosave Draft
-                    </Badge>
-                </div>
-            </header>
+            <PublicFormBrandBar title={form.title || "Untitled form"} audioControl={audioControl} />
 
             {/* Core Card Slides Container */}
             <section className="flex-1 flex items-center justify-center max-w-2xl w-full mx-auto py-8 z-10 min-h-0">
@@ -855,37 +729,47 @@ export function PublicFormClient({ slug }: { slug: string }) {
 
                     {/* Welcome Slide */}
                     {currentStep === -1 && (
-                        <div className="relative overflow-hidden bg-zinc-900/35 backdrop-blur-xl border border-zinc-800 p-6 sm:p-10 space-y-6 rounded-3xl shadow-xl">
+                        <div className={cn(formCardClass, "space-y-6")}>
                             <div className="space-y-4">
-                                <div className="inline-flex items-center gap-1.5 bg-zinc-950/40 border border-zinc-850 text-zinc-300 text-[9px] tracking-widest uppercase font-extrabold px-2.5 py-1 rounded-md shadow-sm">
-                                    <IconSparkles className="size-3 text-amber-400 animate-spin duration-[4000ms]" />
-                                    Form Workspace
-                                </div>
-                                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white leading-tight">
+                                <Badge
+                                    variant="outline"
+                                    className="rounded-md border-emerald-500/30 bg-emerald-500/10 text-[10px] uppercase tracking-wider text-emerald-400"
+                                >
+                                    HexForm
+                                </Badge>
+                                <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
                                     {form.title || "Untitled form"}
                                 </h1>
-                                {form.description && (
+                                {form.description ? (
                                     <div
-                                        className="text-zinc-400 text-xs sm:text-sm leading-relaxed border border-zinc-850 p-4 rounded-xl bg-zinc-950/20 prose prose-invert font-normal"
+                                        className="prose prose-invert max-w-none rounded-md border border-zinc-800 bg-zinc-950/50 p-4 text-sm leading-relaxed text-zinc-400"
                                         dangerouslySetInnerHTML={{ __html: form.description }}
                                     />
-                                )}
+                                ) : null}
+                                {isPreview ? (
+                                    <p className="text-xs text-amber-400/90">Preview mode — submissions are not saved.</p>
+                                ) : null}
                             </div>
 
-                            <div className="pt-4 space-y-4 border-t border-zinc-850">
-                                {errorMessage && (
-                                    <div className="text-rose-450 text-xs bg-rose-500/10 p-3.5 border border-rose-500/20 rounded-xl">
+                            <div className="space-y-4 border-t border-zinc-800 pt-4">
+                                {errorMessage ? (
+                                    <div className="rounded-md border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-300">
                                         {errorMessage}
                                     </div>
-                                )}
+                                ) : null}
 
-                                <button
-                                    onClick={handleNext}
-                                    className={`py-3.5 px-6 bg-gradient-to-r ${theme.btnBg} ${theme.btnShadow} text-white font-extrabold text-sm rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2 group w-full sm:w-auto`}
-                                >
-                                    Start Form
-                                    <IconArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
-                                </button>
+                                {totalSteps === 0 ? (
+                                    <p className="text-sm text-zinc-500">This form has no questions yet.</p>
+                                ) : (
+                                    <Button
+                                        type="button"
+                                        onClick={handleNext}
+                                        className="cta-primary group rounded-md font-semibold"
+                                    >
+                                        Start form
+                                        <IconArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
+                                    </Button>
+                                )}
                             </div>
                         </div>
                     )}
@@ -896,30 +780,36 @@ export function PublicFormClient({ slug }: { slug: string }) {
                         return (
                             <div
                                 key={field.id}
-                                className="relative overflow-hidden bg-zinc-900/35 backdrop-blur-xl border border-zinc-800 p-6 sm:p-10 space-y-6 rounded-3xl shadow-xl animate-in slide-in-from-right fade-in duration-300"
+                                className={cn(formCardClass, "animate-in fade-in slide-in-from-right-4 space-y-6 duration-300")}
                             >
                                 <div className="space-y-3">
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-[9px] font-extrabold text-zinc-450 tracking-widest uppercase bg-zinc-950/40 px-2.5 py-1 rounded border border-zinc-850 shadow-sm">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
                                             Question {idx + 1} of {totalSteps}
                                         </span>
-                                        <Badge variant="secondary" className="text-[9px] font-semibold bg-zinc-800 text-zinc-300 border-zinc-700/50 uppercase px-2 py-0.5 tracking-wider">
+                                        <Badge
+                                            variant="outline"
+                                            className={cn(
+                                                "rounded-md text-[10px]",
+                                                field.isRequired
+                                                    ? "border-rose-500/30 text-rose-300"
+                                                    : "border-zinc-700 text-zinc-400",
+                                            )}
+                                        >
                                             {field.isRequired ? "Required" : "Optional"}
                                         </Badge>
                                     </div>
 
-                                    <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white leading-snug">
+                                    <h2 className="text-xl font-semibold tracking-tight text-white sm:text-2xl">
                                         {field.label}
                                     </h2>
 
-                                    {field.description && (
-                                        <p className="text-zinc-400 text-xs sm:text-sm font-normal leading-relaxed">
-                                            {field.description}
-                                        </p>
-                                    )}
+                                    {field.description ? (
+                                        <p className="text-sm leading-relaxed text-zinc-400">{field.description}</p>
+                                    ) : null}
                                 </div>
 
-                                <div className="pt-4 space-y-4 border-t border-zinc-850">
+                                <div className="space-y-4 border-t border-zinc-800 pt-4">
                                     <FieldControl
                                         field={field}
                                         value={answers[field.labelKey] ?? null}
@@ -931,27 +821,30 @@ export function PublicFormClient({ slug }: { slug: string }) {
                                         toggleOption={(optVal) => toggleOption(field, optVal)}
                                     />
 
-                                    {errorMessage && (
-                                        <div className="text-rose-455 text-xs bg-rose-500/10 p-3.5 border border-rose-500/20 rounded-xl">
+                                    {errorMessage ? (
+                                        <div className="rounded-md border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-300">
                                             {errorMessage}
                                         </div>
-                                    )}
+                                    ) : null}
 
-                                    <div className="flex justify-end pt-6 border-t border-zinc-850 gap-2">
-                                        <button
+                                    <div className="flex justify-end gap-2 border-t border-zinc-800 pt-4">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
                                             onClick={handleBack}
-                                            className="px-4 py-2 border border-zinc-800 bg-zinc-950/10 hover:bg-zinc-800 text-zinc-400 hover:text-white text-xs font-semibold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1 hover:scale-[1.02] active:scale-[0.98]"
+                                            className="rounded-md border-zinc-700"
                                         >
-                                            <IconChevronLeft className="size-3.5" />
+                                            <IconChevronLeft className="size-4" />
                                             Back
-                                        </button>
-                                        <button
+                                        </Button>
+                                        <Button
+                                            type="button"
                                             onClick={handleNext}
-                                            className="px-4 py-2 bg-zinc-100 hover:bg-white text-zinc-950 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1 hover:scale-[1.02] active:scale-[0.98]"
+                                            className="cta-primary rounded-md font-semibold"
                                         >
                                             Next
-                                            <IconChevronRight className="size-3.5" />
-                                        </button>
+                                            <IconChevronRight className="size-4" />
+                                        </Button>
                                     </div>
                                 </div>
                             </div>
@@ -959,68 +852,71 @@ export function PublicFormClient({ slug }: { slug: string }) {
                     })}
 
                     {/* Review & Submit */}
-                    {currentStep === totalSteps && (
-                        <div className="relative overflow-hidden bg-zinc-900/35 backdrop-blur-xl border border-zinc-800 p-6 sm:p-10 space-y-6 rounded-3xl shadow-xl animate-in slide-in-from-right fade-in duration-300">
+                    {currentStep === totalSteps && totalSteps > 0 && (
+                        <div className={cn(formCardClass, "animate-in fade-in space-y-6 duration-300")}>
                             <div className="space-y-2">
-                                <div className="inline-flex items-center gap-1.5 bg-zinc-950/40 border border-zinc-850 text-zinc-300 text-[9px] tracking-widest uppercase font-extrabold px-2.5 py-1 rounded-md shadow-sm">
-                                    <IconSparkles className="size-3 text-orange-400" />
-                                    Final Check
-                                </div>
-                                <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white leading-tight">Review Answers</h2>
-                                <p className="text-xs text-zinc-400 leading-relaxed">
-                                    Please take a moment to verify your responses before submitting.
+                                <p className="text-xs font-semibold uppercase tracking-wider text-emerald-400">
+                                    Review
+                                </p>
+                                <h2 className="text-xl font-bold text-white sm:text-2xl">Review your answers</h2>
+                                <p className="text-sm text-zinc-400">
+                                    Tap a row to edit before you submit.
                                 </p>
                             </div>
 
-                            <div className="border-t border-zinc-855 pt-4 space-y-3.5 max-h-[220px] overflow-y-auto pr-2 shadow-inner">
+                            <div className="max-h-[220px] space-y-2 overflow-y-auto pr-1">
                                 {form.fields.map((f, i) => {
                                     const rawVal = answers[f.labelKey];
-                                    let displayVal = "Empty";
+                                    let displayVal = "—";
                                     if (rawVal !== undefined && rawVal !== null && rawVal !== "") {
                                         displayVal = Array.isArray(rawVal) ? rawVal.join(", ") : String(rawVal);
                                     }
                                     return (
-                                        <div
+                                        <button
                                             key={f.id}
+                                            type="button"
                                             onClick={() => {
                                                 playSound("tock");
                                                 setCurrentStep(i);
                                             }}
-                                            className="group flex justify-between items-start gap-4 p-3.5 bg-zinc-950/20 border border-zinc-850 hover:border-zinc-700 rounded-2xl text-xs transition-all cursor-pointer hover:scale-[1.01]"
+                                            className="group flex w-full items-start justify-between gap-4 rounded-md border border-zinc-800 bg-zinc-950/40 p-3 text-left text-xs transition-colors hover:border-zinc-700"
                                         >
-                                            <span className="text-zinc-400 font-medium text-xs truncate max-w-[200px] group-hover:text-white transition-colors">
+                                            <span className="max-w-[200px] truncate text-zinc-400 group-hover:text-white">
                                                 {i + 1}. {f.label}
                                             </span>
-                                            <span className="font-semibold text-zinc-200 text-xs text-right max-w-[220px] break-all group-hover:text-white transition-colors">
+                                            <span className="max-w-[220px] break-all text-right font-medium text-zinc-200">
                                                 {displayVal}
                                             </span>
-                                        </div>
+                                        </button>
                                     );
                                 })}
                             </div>
 
-                            <div className="pt-4 border-t border-zinc-850 flex flex-col sm:flex-row gap-3">
-                                <button
+                            <div className="flex flex-col gap-3 border-t border-zinc-800 pt-4 sm:flex-row">
+                                <Button
+                                    type="button"
+                                    variant="outline"
                                     onClick={handleBack}
-                                    className="w-full py-3.5 border border-zinc-800 bg-zinc-950/20 hover:bg-zinc-800 text-zinc-300 font-semibold text-xs rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 hover:scale-[1.02] active:scale-[0.98]"
+                                    className="rounded-md border-zinc-700"
                                 >
                                     <IconChevronLeft className="size-4" />
-                                    Go Back
-                                </button>
-                                <button
+                                    Back
+                                </Button>
+                                <Button
+                                    type="button"
                                     onClick={handleSubmit}
                                     disabled={submitForm.isPending}
-                                    className={`w-full py-3.5 bg-gradient-to-r ${theme.btnBg} ${theme.btnShadow} text-white font-extrabold text-xs rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 hover:scale-[1.02] active:scale-[0.98] group`}
+                                    className="cta-primary flex-1 rounded-md font-semibold"
                                 >
                                     {submitForm.isPending ? (
-                                        <div className="size-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        <span className="size-4 animate-spin rounded-full border-2 border-zinc-950/30 border-t-zinc-950" />
                                     ) : (
                                         <>
-                                            <IconSend className="size-3.5" />
-                                            Submit Response
+                                            <IconSend className="size-4" />
+                                            Submit response
                                         </>
                                     )}
-                                </button>
+                                </Button>
                             </div>
                         </div>
                     )}
@@ -1028,16 +924,17 @@ export function PublicFormClient({ slug }: { slug: string }) {
                 </div>
             </section>
 
-            {/* Simple Horizontal Progress Bar */}
-            <footer className="max-w-2xl w-full mx-auto space-y-2 border-t border-white/5 pt-4 z-10">
-                <div className="flex items-center justify-between text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
-                    <span>{progressPercent}% Complete</span>
-                    <span>{currentStep + 1} / {totalSteps + 1} Step</span>
+            <footer className="z-10 mx-auto w-full max-w-2xl space-y-2 border-t border-zinc-800 pt-4">
+                <div className="flex items-center justify-between text-[10px] font-medium uppercase tracking-wider text-zinc-500">
+                    <span>{progressPercent}% complete</span>
+                    <span>
+                        Step {Math.max(currentStep + 2, 1)} / {Math.max(totalSteps + 1, 1)}
+                    </span>
                 </div>
-                <div className="w-full h-1 bg-zinc-950 border border-zinc-900 rounded-full overflow-hidden">
+                <div className="h-1.5 overflow-hidden rounded-full border border-zinc-800 bg-zinc-950">
                     <div
-                        className="h-full transition-all duration-700 ease-out rounded-full shadow-sm"
-                        style={{ width: `${progressPercent}%`, backgroundColor: theme.stroke }}
+                        className="h-full rounded-full bg-emerald-500/80 transition-all duration-500 ease-out"
+                        style={{ width: `${progressPercent}%` }}
                     />
                 </div>
             </footer>
@@ -1069,7 +966,7 @@ function FieldControl({
                 onChange={(event) => onChange(event.target.value)}
                 ref={inputRef as any}
                 rows={4}
-                className="text-xs sm:text-sm border-zinc-800 bg-zinc-950/40 text-zinc-100 focus-visible:ring-emerald-500/50 focus:border-emerald-500/50 transition-all rounded-2xl p-4 placeholder-zinc-650 leading-relaxed outline-none w-full"
+                className="w-full rounded-md border-zinc-800 bg-zinc-950/50 p-4 text-sm text-zinc-100 placeholder:text-zinc-500 focus-visible:border-emerald-500/50 focus-visible:ring-emerald-500/30"
             />
         );
     }
@@ -1088,11 +985,12 @@ function FieldControl({
                         <button
                             key={option.id}
                             onClick={() => toggleOption(option.value)}
-                            className={`group flex items-center justify-between p-3.5 border transition-all text-left rounded-2xl cursor-pointer hover:scale-[1.01] active:scale-[0.99] duration-200 relative ${
+                            className={cn(
+                                "group relative flex cursor-pointer items-center justify-between rounded-md border p-3.5 text-left transition-all",
                                 isSelected
-                                    ? "border-emerald-500/60 bg-emerald-500/5 text-white shadow-[0_0_15px_rgba(16,185,129,0.06)]"
-                                    : "border-zinc-850 bg-zinc-950/20 text-zinc-400 hover:border-zinc-700 hover:bg-zinc-850 hover:text-zinc-200"
-                            }`}
+                                    ? "border-emerald-500/50 bg-emerald-500/10 text-white"
+                                    : "border-zinc-800 bg-zinc-950/40 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200",
+                            )}
                             type="button"
                         >
                             <span className="font-semibold text-xs truncate max-w-[170px] sm:max-w-[220px]">{option.label}</span>
@@ -1123,14 +1021,15 @@ function FieldControl({
             <div className="grid grid-cols-2 gap-3 mt-1">
                 <button
                     onClick={() => onChange(true)}
-                    className={`group flex items-center justify-between p-3.5 border transition-all text-left rounded-2xl cursor-pointer hover:scale-[1.01] active:scale-[0.99] duration-200 ${
+                    className={cn(
+                        "flex cursor-pointer items-center justify-between rounded-md border p-3.5 text-left transition-all",
                         activeVal
-                            ? "border-emerald-500/60 bg-emerald-500/5 text-white shadow-[0_0_15px_rgba(16,185,129,0.06)]"
-                            : "border-zinc-855 bg-zinc-950/20 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
-                    }`}
+                            ? "border-emerald-500/50 bg-emerald-500/10 text-white"
+                            : "border-zinc-800 bg-zinc-950/40 text-zinc-400 hover:border-zinc-700",
+                    )}
                     type="button"
                 >
-                    <span className="font-semibold text-xs">Yes</span>
+                    <span className="text-xs font-semibold">Yes</span>
                     <div className={`size-4.5 border flex items-center justify-center transition-all rounded-full shrink-0 ${
                         activeVal ? "border-emerald-500 bg-emerald-500" : "border-zinc-700"
                     }`}>
@@ -1140,14 +1039,15 @@ function FieldControl({
 
                 <button
                     onClick={() => onChange(false)}
-                    className={`group flex items-center justify-between p-3.5 border transition-all text-left rounded-2xl cursor-pointer hover:scale-[1.01] active:scale-[0.99] duration-200 ${
+                    className={cn(
+                        "flex cursor-pointer items-center justify-between rounded-md border p-3.5 text-left transition-all",
                         inactiveVal
-                            ? "border-emerald-500/60 bg-emerald-500/5 text-white shadow-[0_0_15px_rgba(16,185,129,0.06)]"
-                            : "border-zinc-855 bg-zinc-950/20 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
-                    }`}
+                            ? "border-emerald-500/50 bg-emerald-500/10 text-white"
+                            : "border-zinc-800 bg-zinc-950/40 text-zinc-400 hover:border-zinc-700",
+                    )}
                     type="button"
                 >
-                    <span className="font-semibold text-xs">No</span>
+                    <span className="text-xs font-semibold">No</span>
                     <div className={`size-4.5 border flex items-center justify-center transition-all rounded-full shrink-0 ${
                         inactiveVal ? "border-emerald-500 bg-emerald-500" : "border-zinc-700"
                     }`}>
@@ -1163,16 +1063,17 @@ function FieldControl({
         return (
             <button
                 onClick={() => onChange(!activeVal)}
-                className={`group flex items-center gap-3 p-3.5 border transition-all text-left rounded-2xl cursor-pointer hover:scale-[1.01] active:scale-[0.99] duration-200 ${
+                className={cn(
+                    "flex cursor-pointer items-center gap-3 rounded-md border p-3.5 text-left transition-all",
                     activeVal
-                        ? "border-emerald-500/60 bg-emerald-500/5 text-white shadow-[0_0_15px_rgba(16,185,129,0.06)]"
-                        : "border-zinc-850 bg-zinc-950/20 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
-                }`}
+                        ? "border-emerald-500/50 bg-emerald-500/10 text-white"
+                        : "border-zinc-800 bg-zinc-950/40 text-zinc-400 hover:border-zinc-700",
+                )}
                 type="button"
             >
                 <div
                     className={`size-4.5 border flex items-center justify-center transition-all shrink-0 ${
-                        activeVal ? "border-emerald-500 bg-emerald-500" : "border-zinc-700 group-hover:border-zinc-550"
+                        activeVal ? "border-emerald-500 bg-emerald-500" : "border-zinc-700"
                     } rounded-md`}
                 >
                     {activeVal && <IconCheck className="size-3 text-white font-bold" />}
@@ -1194,14 +1095,20 @@ function FieldControl({
                             onMouseEnter={() => setHoverRating(rating)}
                             onMouseLeave={() => setHoverRating(null)}
                             onClick={() => onChange(rating)}
-                            className={`size-12 border flex items-center justify-center transition-all rounded-xl cursor-pointer hover:scale-110 active:scale-95 duration-200 ${
+                            className={cn(
+                                "flex size-11 cursor-pointer items-center justify-center rounded-md border transition-all",
                                 isActive
-                                    ? "border-orange-400/60 bg-orange-400/10 text-orange-400 shadow-[0_0_20px_rgba(249,115,22,0.1)]"
-                                    : "border-zinc-800 bg-zinc-950/20 text-zinc-550 hover:border-zinc-700 hover:text-zinc-300"
-                            }`}
+                                    ? "border-amber-400/50 bg-amber-400/10 text-amber-400"
+                                    : "border-zinc-800 bg-zinc-950/40 text-zinc-500 hover:border-zinc-700",
+                            )}
                             type="button"
                         >
-                            <IconStar className={`size-6 transition-transform ${isActive ? "fill-orange-400 text-orange-400 scale-105" : "text-zinc-650"}`} />
+                            <IconStar
+                                className={cn(
+                                    "size-5",
+                                    isActive ? "fill-amber-400 text-amber-400" : "text-zinc-600",
+                                )}
+                            />
                         </button>
                     );
                 })}
@@ -1219,7 +1126,9 @@ function FieldControl({
                         ? "number"
                         : field.type === "DATE"
                             ? "date"
-                            : "text"
+                            : field.type === "FILE_URL"
+                                ? "url"
+                                : "text"
             }
             placeholder={field.placeholder ?? "Type your answer here..."}
             value={typeof value === "string" || typeof value === "number" ? value : ""}
@@ -1228,7 +1137,7 @@ function FieldControl({
                 onChange(nextValue);
             }}
             ref={inputRef as any}
-            className="text-xs sm:text-sm border-zinc-800 bg-zinc-950/40 text-zinc-100 focus-visible:ring-emerald-500/50 focus:border-emerald-500/50 transition-all rounded-2xl px-4 py-3.5 h-auto placeholder-zinc-650 outline-none w-full"
+            className="h-auto w-full rounded-md border-zinc-800 bg-zinc-950/50 px-4 py-3 text-sm text-zinc-100 placeholder:text-zinc-500 focus-visible:border-emerald-500/50 focus-visible:ring-emerald-500/30"
         />
     );
 }
