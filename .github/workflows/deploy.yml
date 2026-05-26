@@ -17,14 +17,12 @@ jobs:
 
       - name: Setup PNPM
         uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'pnpm'
+          cache: pnpm
 
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
@@ -56,22 +54,12 @@ jobs:
           script: |
             cd /root/projects/HexForm-a-Formbuilder
 
-            echo "Pulling latest code..."
             git pull origin main || git pull origin master
 
-            echo "Installing dependencies..."
             pnpm install --frozen-lockfile
 
-            echo "Building project..."
             pnpm build
 
-            echo "Running migrations..."
-            pnpm db:migrate --if-present
-
-            echo "Restarting PM2..."
             pm2 restart ecosystem.config.js || pm2 start ecosystem.config.js
 
-            echo "Saving PM2 state..."
             pm2 save
-
-            echo "Deployment completed successfully!"
