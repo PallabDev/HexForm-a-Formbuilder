@@ -115,12 +115,59 @@
 }
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+  }
   * {
     @apply border-border outline-ring/50;
   }
   body {
     @apply bg-background text-foreground antialiased;
   }
+}
+
+/* Landing & billing shared utilities */
+.hex-grid-bg {
+  background-color: #09090b;
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+.val-dot-grid {
+  background-color: #09090b;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.cta-primary {
+  background: linear-gradient(135deg, #fb7185 0%, #f43f5e 100%);
+  color: #09090b;
+  border: 1px solid rgba(251, 113, 133, 0.4);
+}
+.cta-primary:hover {
+  background: linear-gradient(135deg, #fda4af 0%, #fb7185 100%);
+  color: #09090b;
+}
+
+.val-btn-red {
+  background: linear-gradient(135deg, #fb7185 0%, #f43f5e 100%);
+  color: #09090b;
+  border: 1px solid rgba(251, 113, 133, 0.35);
+}
+.val-btn-red:hover {
+  background: linear-gradient(135deg, #fda4af 0%, #fb7185 100%);
+}
+
+.accent-emerald {
+  color: #34d399;
+  background-color: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(52, 211, 153, 0.25);
+}
+
+.landing-section {
+  scroll-margin-top: 6rem;
 }
 
 /* ProseMirror / Tiptap specific styling */

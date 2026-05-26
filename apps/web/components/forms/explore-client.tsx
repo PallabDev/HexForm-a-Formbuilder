@@ -17,6 +17,7 @@ import { Input } from "~/components/ui/input";
 import { Skeleton } from "~/components/ui/skeleton";
 import { useUser } from "~/hooks/api/auth";
 import { useExploreForms } from "~/hooks/api/forms";
+import { getSignInHref } from "~/lib/landing-plans";
 
 export function ExploreClient() {
   const { forms, isLoading, error } = useExploreForms({ limit: 48 });
@@ -80,18 +81,14 @@ export function ExploreClient() {
     return filteredForms.slice(start, start + 6);
   }, [filteredForms, currentPage]);
 
-  return (
-    <main className="min-h-dvh bg-[#0b0c0f] relative overflow-hidden select-none text-zinc-100 px-4 py-8 md:px-8 transition-colors duration-1000">
-      {/* Soft Calm Sage Green Background Aura */}
-      <div className="absolute inset-0 z-0 pointer-events-none transition-all duration-1000 ease-in-out">
-        <div className="absolute top-[-10%] left-[-10%] size-[50%] rounded-full bg-gradient-to-br from-emerald-955/15 via-[#0b0c0f] to-transparent blur-[120px] animate-pulse duration-[8000ms]" />
-        <div className="absolute bottom-[-10%] right-[-10%] size-[50%] rounded-full bg-gradient-to-tl from-orange-955/10 via-[#0b0c0f] to-transparent blur-[120px] animate-pulse duration-[10000ms]" />
-      </div>
+  const createFormHref = user
+    ? "/dashboard/forms"
+    : getSignInHref("/dashboard/forms");
 
+  return (
+    <main className="min-h-dvh bg-zinc-950 text-zinc-100 px-4 pb-12 pt-24 md:px-8 hex-grid-bg">
       <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-8 z-10">
-        
-        {/* Header HUD Dashboard */}
-        <header className="flex flex-col gap-5 border-b border-white/5 pb-6 sm:flex-row sm:items-center sm:justify-between backdrop-blur-md bg-zinc-955/10 px-4 py-4 rounded-2xl shadow-sm">
+        <header className="flex flex-col gap-5 rounded-lg border border-zinc-800 bg-zinc-900/50 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1.5">
             <h1 className="text-2xl font-extrabold tracking-tight text-white leading-none">Explore Forms</h1>
             <p className="text-xs text-zinc-400 font-normal leading-relaxed">
@@ -103,7 +100,7 @@ export function ExploreClient() {
           <div className="relative w-full sm:w-80" ref={dropdownRef}>
             <IconSearch className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-500" />
             <Input
-              className="pl-9 pr-8 text-xs border-zinc-800 bg-zinc-950/30 text-zinc-100 focus-visible:ring-emerald-500/30 focus:border-emerald-500/50 transition-all rounded-xl py-2 h-9 placeholder-zinc-650 outline-none w-full"
+              className="pl-9 pr-8 text-xs border-zinc-800 bg-zinc-950/30 text-zinc-100 focus-visible:ring-emerald-500/30 focus:border-emerald-500/50 transition-all rounded-md py-2 h-9 placeholder-zinc-500 outline-none w-full"
               placeholder="Search public forms..."
               value={searchQuery}
               onChange={(e) => {
@@ -114,7 +111,7 @@ export function ExploreClient() {
             />
             
             {showSuggestions && suggestions.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-zinc-900/90 backdrop-blur-xl border border-zinc-850 rounded-2xl shadow-2xl overflow-hidden py-1.5 animate-in fade-in duration-200">
+              <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-zinc-900/95 backdrop-blur-xl border border-zinc-800 rounded-md shadow-xl overflow-hidden py-1.5 animate-in fade-in duration-200">
                 <div className="px-3 py-1 text-[9px] font-bold text-zinc-550 uppercase tracking-widest border-b border-zinc-850">
                   Search Suggestions
                 </div>
@@ -149,23 +146,24 @@ export function ExploreClient() {
           {isLoading ? (
             <GallerySkeleton />
           ) : paginatedForms.length === 0 ? (
-            <div className="col-span-full mx-auto w-full max-w-md rounded-3xl border border-zinc-800 bg-zinc-955/20 backdrop-blur-xl p-12 text-center shadow-xl">
+            <div className="col-span-full mx-auto w-full max-w-md rounded-lg border border-zinc-800 bg-zinc-900/50 p-12 text-center">
               <IconFileText className="mx-auto size-12 text-zinc-550" />
               <h2 className="mt-4 text-base font-bold text-white tracking-tight">No Forms Found</h2>
               <p className="mt-2 text-xs leading-relaxed text-zinc-400 font-normal">
                 No public forms match your search query yet. Enable form public directory visibility to view it here.
               </p>
-              {user ? (
-                <Button asChild className="mt-5 cursor-pointer rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs py-2 px-4 shadow">
-                  <Link href="/dashboard/forms">Create Form</Link>
-                </Button>
-              ) : null}
+              <Button
+                asChild
+                className="mt-5 cursor-pointer rounded-md cta-primary font-semibold text-xs py-2 px-4"
+              >
+                <Link href={createFormHref}>Create Form</Link>
+              </Button>
             </div>
           ) : (
             paginatedForms.map((form) => (
               <article
                 key={form.id}
-                className="relative overflow-hidden bg-zinc-900/35 backdrop-blur-xl border border-zinc-800 p-6 rounded-3xl transition-all hover:border-zinc-705 hover:scale-[1.01] active:scale-[0.99] duration-300 shadow-xl flex flex-col justify-between min-h-[180px]"
+                className="relative overflow-hidden bg-zinc-900/50 border border-zinc-800 p-6 rounded-lg transition-all hover:border-zinc-700 flex flex-col justify-between min-h-[180px]"
               >
                 <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-emerald-500/40 via-orange-500/30 to-yellow-500/20" />
                 
@@ -190,7 +188,7 @@ export function ExploreClient() {
                 </div>
 
                 <div className="mt-5 pt-4 border-t border-zinc-850 flex items-center justify-end gap-3">
-                  <Button asChild size="sm" variant="outline" className="shrink-0 cursor-pointer text-xs rounded-xl border-zinc-800 bg-zinc-950/10 hover:bg-zinc-800 text-zinc-300 hover:text-white transition-all shadow-sm">
+                  <Button asChild size="sm" variant="outline" className="shrink-0 cursor-pointer text-xs rounded-md border-zinc-800 bg-zinc-950/10 hover:bg-zinc-800 text-zinc-300 hover:text-white transition-all">
                     <Link href={`/f/${form.slug}`}>
                       <IconExternalLink className="size-3.5 mr-1" />
                       Open Form
@@ -212,7 +210,7 @@ export function ExploreClient() {
                 }
               }}
               disabled={currentPage === 1}
-              className="px-4 py-2 text-xs font-semibold rounded-xl border border-zinc-800 bg-zinc-950/20 hover:bg-zinc-800 text-zinc-400 hover:text-white cursor-pointer disabled:opacity-30 disabled:pointer-events-none transition-all flex items-center gap-1.5 shadow-sm"
+              className="px-4 py-2 text-xs font-semibold rounded-md border border-zinc-800 bg-zinc-950/20 hover:bg-zinc-800 text-zinc-400 hover:text-white cursor-pointer disabled:opacity-30 disabled:pointer-events-none transition-all flex items-center gap-1.5"
             >
               <IconChevronLeft className="size-3.5" />
               Previous
@@ -229,7 +227,7 @@ export function ExploreClient() {
                         setCurrentPage(page);
                       }
                     }}
-                    className={`size-8 text-xs font-bold rounded-xl transition-all cursor-pointer border flex items-center justify-center ${
+                    className={`size-8 text-xs font-bold rounded-md transition-all cursor-pointer border flex items-center justify-center ${
                       isCurrent
                         ? "border-emerald-500/60 bg-emerald-500/10 text-white shadow-sm"
                         : "border-zinc-800 bg-zinc-950/20 hover:bg-zinc-850 text-zinc-450 hover:text-zinc-200"
@@ -248,7 +246,7 @@ export function ExploreClient() {
                 }
               }}
               disabled={currentPage === totalPages}
-              className="px-4 py-2 text-xs font-semibold rounded-xl border border-zinc-800 bg-zinc-950/20 hover:bg-zinc-800 text-zinc-400 hover:text-white cursor-pointer disabled:opacity-30 disabled:pointer-events-none transition-all flex items-center gap-1.5 shadow-sm"
+              className="px-4 py-2 text-xs font-semibold rounded-md border border-zinc-800 bg-zinc-950/20 hover:bg-zinc-800 text-zinc-400 hover:text-white cursor-pointer disabled:opacity-30 disabled:pointer-events-none transition-all flex items-center gap-1.5"
             >
               Next
               <IconChevronRight className="size-3.5" />
@@ -264,7 +262,7 @@ function GallerySkeleton() {
   return (
     <>
       {[1, 2, 3].map((item) => (
-        <div key={item} className="rounded-3xl border border-zinc-800 bg-zinc-950/10 p-6 space-y-4">
+        <div key={item} className="rounded-lg border border-zinc-800 bg-zinc-950/10 p-6 space-y-4">
           <div className="flex items-center justify-between">
             <Skeleton className="h-4 w-16 rounded-md" />
             <Skeleton className="h-4 w-20 rounded-md" />
@@ -274,7 +272,7 @@ function GallerySkeleton() {
           <Skeleton className="h-4 w-5/6 rounded-md mt-1" />
           <div className="mt-6 pt-4 border-t border-zinc-850 flex items-center justify-between">
             <Skeleton className="h-4 w-24 rounded" />
-            <Skeleton className="h-8 w-20 rounded-xl" />
+            <Skeleton className="h-8 w-20 rounded-md" />
           </div>
         </div>
       ))}

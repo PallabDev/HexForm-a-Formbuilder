@@ -21,8 +21,9 @@ import {
 import { Input } from "~/components/ui/input"
 import { useSignin } from "~/hooks/api/auth"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { getSafeAuthErrorMessage } from "~/lib/auth-error"
+import { getSafeNextPath } from "~/lib/landing-plans"
 
 export type LoginFormValues = {
     email: string
@@ -34,7 +35,9 @@ export function LoginForm({
     ...props
 }: React.ComponentProps<"div">) {
     const router = useRouter()
+    const searchParams = useSearchParams()
     const [authError, setAuthError] = useState<string | null>(null)
+    const nextPath = getSafeNextPath(searchParams.get("next"))
     const { register, handleSubmit } = useForm<LoginFormValues>({
         defaultValues: {
             email: "",
@@ -60,7 +63,7 @@ export function LoginForm({
                 return
             }
 
-            router.replace("/")
+            router.replace(nextPath ?? "/dashboard/forms")
         } catch (error) {
             setAuthError(getSafeAuthErrorMessage(error, "Unable to sign in. Please check your details and try again."))
         }
