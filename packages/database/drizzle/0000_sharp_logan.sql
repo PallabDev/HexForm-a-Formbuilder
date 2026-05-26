@@ -1,11 +1,24 @@
 CREATE TYPE "public"."field_type" AS ENUM('TEXT', 'LONG_TEXT', 'NUMBER', 'EMAIL', 'YES_NO', 'CHECKBOX', 'FILE_URL', 'SELECT', 'DATE', 'RATING');--> statement-breakpoint
-CREATE TYPE "public"."form_status" AS ENUM('DRAFT', 'PUBLISHED', 'CLOSED', 'ARCHIVED');--> statement-breakpoint
+CREATE TYPE "public"."form_status" AS ENUM('DRAFT', 'PUBLISHED', 'ARCHIVED');--> statement-breakpoint
 CREATE TYPE "public"."form_visibility" AS ENUM('PUBLIC', 'UNLISTED');--> statement-breakpoint
 CREATE TYPE "public"."select_mode" AS ENUM('SINGLE', 'MULTIPLE');--> statement-breakpoint
 CREATE TYPE "public"."submission_status" AS ENUM('STARTED', 'COMPLETED', 'PARTIAL');--> statement-breakpoint
 CREATE TYPE "public"."billing_interval" AS ENUM('MONTHLY');--> statement-breakpoint
 CREATE TYPE "public"."payment_status" AS ENUM('CREATED', 'AUTHORIZED', 'CAPTURED', 'FAILED', 'REFUNDED');--> statement-breakpoint
 CREATE TYPE "public"."subscription_status" AS ENUM('TRIALING', 'ACTIVE', 'PAST_DUE', 'CANCELLED', 'EXPIRED');--> statement-breakpoint
+CREATE TABLE "users" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"full_name" varchar(80) NOT NULL,
+	"email" varchar(255) NOT NULL,
+	"email_verified" boolean DEFAULT false,
+	"password" varchar(255),
+	"salt" varchar(255),
+	"profile_image_url" text,
+	"created_at" timestamp DEFAULT now(),
+	"updated_at" timestamp,
+	CONSTRAINT "users_email_unique" UNIQUE("email")
+);
+--> statement-breakpoint
 CREATE TABLE "form_field_options" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"field_id" uuid NOT NULL,
@@ -70,7 +83,6 @@ CREATE TABLE "forms" (
 	"visibility" "form_visibility" DEFAULT 'UNLISTED' NOT NULL,
 	"slug" varchar(140) NOT NULL,
 	"is_accepting_submissions" boolean DEFAULT false NOT NULL,
-	"submission_limit" integer,
 	"submission_count" integer DEFAULT 0 NOT NULL,
 	"published_at" timestamp,
 	"created_at" timestamp DEFAULT now(),

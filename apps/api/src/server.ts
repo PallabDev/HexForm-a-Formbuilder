@@ -9,7 +9,7 @@ import cookieParser from 'cookie-parser';
 
 import { serverRouter, createContext } from "@repo/trpc/server";
 
-import { env } from "./env";
+import { env } from "./env.js";
 
 export const app = express();
 const openApiDocument = generateOpenApiDocument(serverRouter, {
@@ -60,6 +60,9 @@ app.use(
     createOpenApiExpressMiddleware({
         router: serverRouter,
         createContext,
+        responseMeta: undefined,
+        onError: undefined,
+        maxBodySize: undefined,
     }),
 );
 

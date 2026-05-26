@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { and, eq, db, desc, sql, count } from "@repo/database";
-import { pricingPlansTable, userSubscriptionsTable, paymentsTable } from "@repo/repo/../database/models/pricing";
+import { pricingPlansTable, userSubscriptionsTable, paymentsTable } from "@repo/database/models/pricing";
 import { formsTable } from "@repo/database/models/form";
 import { authenticatedProcedure, publicProcedure, router } from "../../trpc";
 import { randomUUID, createHmac } from "node:crypto";
