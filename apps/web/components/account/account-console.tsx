@@ -1,7 +1,17 @@
 "use client";
 
-import { IconMail, IconShieldCheck, IconUserCircle, IconLoader } from "@tabler/icons-react";
+import {
+  IconMail,
+  IconShieldCheck,
+  IconLoader,
+  IconForms,
+} from "@tabler/icons-react";
+import Link from "next/link";
+
 import { Badge } from "~/components/ui/badge";
+import { Button } from "~/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
+import { DashboardPageHeader } from "~/components/dashboard/dashboard-page-header";
 import { useUser } from "~/hooks/api/auth";
 
 export function AccountConsole() {
@@ -9,70 +19,81 @@ export function AccountConsole() {
 
   if (isLoading) {
     return (
-      <main className="val-dot-grid min-h-[calc(100dvh-6rem)] flex items-center justify-center p-4">
-        <div className="text-center space-y-4">
-          <IconLoader className="size-10 text-primary animate-spin mx-auto" />
-          <h2 className="text-xs font-semibold text-zinc-300 uppercase tracking-widest">
-            Loading Account profile...
-          </h2>
-        </div>
+      <main className="hex-grid-bg flex min-h-[calc(100dvh-6rem)] items-center justify-center p-4">
+        <IconLoader className="size-8 animate-spin text-emerald-400" />
       </main>
     );
   }
 
   if (error || !user) {
     return (
-      <main className="val-card-red p-6 text-sm text-destructive rounded-[3px] border border-destructive/40 bg-destructive/10 max-w-md mx-auto mt-12 text-center uppercase tracking-wider font-mono">
-        {error?.message ?? "You are not signed in."}
+      <main className="mx-auto max-w-6xl p-6">
+        <div className="rounded-md border border-rose-500/30 bg-rose-500/10 p-6 text-center text-sm text-rose-300">
+          {error?.message ?? "You are not signed in."}
+        </div>
       </main>
     );
   }
 
-  return (
-    <main className="space-y-6 w-full px-6 mx-auto animate-in fade-in duration-200 py-2">
-      {/* Title block */}
-      <section className="bg-card border border-border p-6 rounded-[3px] space-y-2">
-        <Badge className="bg-primary/10 text-primary border border-primary/40 rounded-[2px] uppercase text-[9px] tracking-widest px-2.5">
-          Creator Identity
-        </Badge>
-        <h1 className="text-2xl font-bold uppercase tracking-wide text-white">Creator profile HUD</h1>
-        <p className="max-w-2xl text-xs text-muted-foreground uppercase leading-relaxed font-mono">
-          Your signed-in workspace identity for form creation, publishing telemetry, and analytics control.
-        </p>
-      </section>
+  const initials =
+    user.fullName
+      ?.split(" ")
+      .map((n) => n[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "HF";
 
-      {/* Profile Details section */}
+  return (
+    <main className="hex-grid-bg mx-auto min-h-[calc(100dvh-6rem)] max-w-6xl space-y-8 p-6 animate-in fade-in duration-200">
+      <DashboardPageHeader
+        label="Account"
+        title="Your workspace profile"
+        description="Signed-in identity for form creation, publishing, analytics, and billing."
+      />
+
       <section className="grid gap-6 lg:grid-cols-3">
-        <div className="bg-card border border-border p-6 rounded-[3px] lg:col-span-2 space-y-6">
-          <div className="flex items-center gap-4 border-b border-border pb-4">
-            <div className="flex size-14 items-center justify-center rounded-[3px] border border-border bg-background">
-              <IconUserCircle className="size-9 text-primary" />
-            </div>
+        <div className="space-y-6 rounded-lg border border-zinc-800 bg-zinc-900/60 p-6 lg:col-span-2">
+          <div className="flex items-center gap-4 border-b border-zinc-800 pb-5">
+            <Avatar className="size-14 rounded-md border border-zinc-700">
+              <AvatarImage src={user.profileImageUrl ?? ""} alt={user.fullName} />
+              <AvatarFallback className="rounded-md bg-zinc-800 text-lg text-zinc-200">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
             <div className="min-w-0">
-              <h2 className="truncate text-lg font-bold text-white uppercase tracking-wider">{user.fullName}</h2>
-              <p className="truncate text-xs text-muted-foreground font-mono">{user.email}</p>
+              <h2 className="truncate text-lg font-semibold text-white">{user.fullName}</h2>
+              <p className="truncate text-sm text-zinc-400">{user.email}</p>
             </div>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
-            <Info label="User Identity Key" value={user.id} />
-            <Info label="Profile Image Coordinate" value={user.profileImageUrl ?? "Not configured"} />
+            <Info label="User ID" value={user.id} />
+            <Info
+              label="Profile image"
+              value={user.profileImageUrl ? "Configured" : "Not set"}
+            />
           </div>
         </div>
 
-        {/* Access Rights side bar */}
-        <div className="bg-card border border-border p-6 rounded-[3px] flex flex-col justify-between min-h-[220px]">
-          <div className="space-y-4">
-            <IconShieldCheck className="size-8 text-accent" />
-            <h2 className="font-bold text-white uppercase tracking-wider text-sm">Protected creator access</h2>
-            <p className="text-xs text-muted-foreground uppercase font-mono leading-relaxed">
-              Dashboard consoles, form builders, and aggregate analytics queries run under secure, authenticated procedures.
+        <div className="flex flex-col justify-between gap-6 rounded-lg border border-zinc-800 bg-zinc-900/60 p-6">
+          <div className="space-y-3">
+            <IconShieldCheck className="size-7 text-emerald-400" stroke={1.5} />
+            <h2 className="text-sm font-semibold text-white">Protected access</h2>
+            <p className="text-sm leading-relaxed text-zinc-400">
+              Dashboard, builders, and analytics run under authenticated procedures tied to your
+              account.
             </p>
           </div>
-          <div className="mt-6 flex items-center gap-2 rounded-[3px] border border-border bg-[#121212] p-3 text-xs font-mono">
-            <IconMail className="size-4 text-primary" />
-            <span className="text-white truncate">{user.email}</span>
+          <div className="flex items-center gap-2 rounded-md border border-zinc-800 bg-zinc-950/80 p-3 text-sm">
+            <IconMail className="size-4 shrink-0 text-emerald-400" />
+            <span className="truncate text-zinc-200">{user.email}</span>
           </div>
+          <Button asChild variant="outline" className="rounded-md border-zinc-700 bg-transparent">
+            <Link href="/dashboard/forms">
+              <IconForms className="mr-2 size-4" />
+              Go to forms
+            </Link>
+          </Button>
         </div>
       </section>
     </main>
@@ -81,9 +102,9 @@ export function AccountConsole() {
 
 function Info({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[3px] border border-border bg-[#121212] p-4 font-mono">
-      <p className="text-[10px] uppercase text-muted-foreground font-semibold">{label}</p>
-      <p className="mt-1.5 break-all text-xs font-bold text-white">{value}</p>
+    <div className="rounded-md border border-zinc-800 bg-zinc-950/50 p-4">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">{label}</p>
+      <p className="mt-1.5 break-all text-sm font-medium text-white">{value}</p>
     </div>
   );
 }
