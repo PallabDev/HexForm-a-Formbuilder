@@ -308,7 +308,7 @@ export function LandingPage() {
           >
             {HERO_BENEFITS.map((b) => (
               <li key={b} className="flex items-center gap-1.5">
-                <span className="size-1 rounded-full bg-emerald-500" />
+                <span className="size-1 rounded-full bg-rose-500" />
                 {b}
               </li>
             ))}
@@ -333,7 +333,7 @@ export function LandingPage() {
           {PAIN_POINTS.map((item, i) => (
             <SectionReveal key={item.title} delay={i * 0.06}>
               <article className="h-full rounded-md border border-zinc-800 bg-zinc-900/40 p-5 transition-colors hover:border-zinc-700">
-                <item.icon className="size-6 text-emerald-400" stroke={1.5} />
+                <item.icon className="size-6 text-rose-500" stroke={1.5} />
                 <h3 className="mt-4 text-base font-semibold text-white">{item.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-zinc-400">{item.description}</p>
               </article>
@@ -413,7 +413,7 @@ export function LandingPage() {
           {USE_CASES.map((item, index) => (
             <SectionReveal key={item.title} delay={index * 0.04}>
               <article className="h-full rounded-md border border-zinc-800 bg-zinc-900/40 p-5 transition-colors hover:border-zinc-700">
-                <item.icon className="size-5 text-emerald-400/90" stroke={1.5} />
+                <item.icon className="size-5 text-rose-500/90" stroke={1.5} />
                 <h3 className="mt-3 text-base font-semibold text-white">{item.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-zinc-400">{item.description}</p>
               </article>

@@ -8,12 +8,14 @@ export function LandingSectionHeader({
   description,
   className,
   align = "center",
+  labelClassName,
 }: {
   label: string;
   title: string;
   description?: ReactNode;
   className?: string;
   align?: "center" | "left";
+  labelClassName?: string;
 }) {
   return (
     <div
@@ -22,7 +24,9 @@ export function LandingSectionHeader({
         className,
       )}
     >
-      <p className="text-xs font-semibold uppercase tracking-widest text-emerald-400">{label}</p>
+      <p className={cn("text-xs font-semibold uppercase tracking-widest", labelClassName || "text-rose-500")}>
+        {label}
+      </p>
       <h2 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl md:text-[2.5rem] md:leading-tight">
         {title}
       </h2>

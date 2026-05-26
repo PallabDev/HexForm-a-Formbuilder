@@ -86,15 +86,15 @@ export function PricingSection() {
 
                   <ul className="space-y-3 border-t border-zinc-800 pt-4 text-sm text-zinc-300">
                     <li className="flex items-start gap-2">
-                      <IconCheck className="mt-0.5 size-4 shrink-0 text-emerald-400" />
+                      <IconCheck className="mt-0.5 size-4 shrink-0 text-rose-500" />
                       <span>{plan.formLimit}</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <IconCheck className="mt-0.5 size-4 shrink-0 text-emerald-400" />
+                      <IconCheck className="mt-0.5 size-4 shrink-0 text-rose-500" />
                       <span>{plan.submissionLimit}</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <IconCheck className="mt-0.5 size-4 shrink-0 text-emerald-400" />
+                      <IconCheck className="mt-0.5 size-4 shrink-0 text-rose-500" />
                       <span>{plan.feature}</span>
                     </li>
                   </ul>

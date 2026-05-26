@@ -27,7 +27,7 @@ const STEPS = [
 function WorkflowGlowTrack() {
   return (
     <div
-      className="pointer-events-none absolute left-[6%] right-[6%] top-6 hidden md:block"
+      className="pointer-events-none absolute left-6 right-[calc(25%-42px)] top-6 hidden md:block"
       aria-hidden
     >
       {/* Base track */}
@@ -41,7 +41,7 @@ function WorkflowGlowTrack() {
         transition={{
           duration: 3.2,
           repeat: Infinity,
-          repeatType: "reverse",
+          repeatDelay: 1.5,
           ease: [0.45, 0, 0.55, 1],
         }}
       />
@@ -63,9 +63,9 @@ function StepIcon({ delay }: { delay: number }) {
         height="22"
         viewBox="0 0 24 24"
         fill="none"
-        className="text-emerald-400"
+        className="text-rose-500"
       >
-        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" fill="rgba(16,185,129,0.12)" />
+        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" fill="rgba(244,63,94,0.12)" />
         <path
           d="M8 12.5l2.5 2.5L16 9"
           stroke="currentColor"
@@ -85,6 +85,7 @@ export function WorkflowSteps() {
         <LandingSectionHeader
           label="Workflow"
           title="From blank page to response insight"
+          labelClassName="text-rose-500"
         />
       </SectionReveal>
 

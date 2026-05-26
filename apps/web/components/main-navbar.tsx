@@ -34,8 +34,8 @@ import { cn } from "~/lib/utils";
 
 function BrandMark() {
   return (
-    <span className="flex size-7 items-center justify-center rounded-md border border-emerald-500/30 bg-emerald-500/10">
-      <IconForms className="size-4 text-emerald-400" stroke={1.75} />
+    <span className="flex size-7 items-center justify-center rounded-md border border-rose-500/30 bg-rose-500/10">
+      <IconForms className="size-4 text-rose-500" stroke={1.75} />
     </span>
   );
 }
@@ -132,7 +132,7 @@ export function MainNavbar() {
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="flex size-9 items-center justify-center rounded-full border border-zinc-700 bg-zinc-900 outline-none ring-emerald-500/40 focus-visible:ring-2"
+                  className="flex size-9 items-center justify-center rounded-full border border-zinc-700 bg-zinc-900 outline-none ring-rose-500/40 focus-visible:ring-2"
                   aria-label="Account menu"
                 >
                   <Avatar className="size-8">
