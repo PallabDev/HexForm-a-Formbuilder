@@ -27,6 +27,7 @@ import {
 } from "@tabler/icons-react";
 
 import { MainNavbar } from "~/components/main-navbar";
+import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import {
   Accordion,
@@ -44,10 +45,10 @@ import { getSignInHref } from "~/lib/landing-plans";
 import { cn } from "~/lib/utils";
 
 const HERO_BENEFITS = [
-  "Blank slate builder",
-  "Public or unlisted",
-  "Validation built in",
-  "Analytics ready",
+  "Forms & surveys",
+  "Blank-slate builder",
+  "Validation rules",
+  "Response analytics",
 ];
 
 const PAIN_POINTS = [
@@ -244,33 +245,39 @@ export function LandingPage() {
       {/* Hero */}
       <section
         id="hero"
-        className="landing-section hex-grid-bg relative overflow-hidden pt-28 pb-16 md:pt-36 md:pb-24"
+        className="landing-section hex-grid-bg relative overflow-hidden pt-36 pb-16 md:pt-44 md:pb-24 lg:pt-48"
       >
         <div className="mx-auto max-w-6xl px-4 text-center">
-          <motion.p
-            initial={{ opacity: 0, y: 12 }}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-            className="text-xs font-semibold uppercase tracking-widest text-emerald-400"
+            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+            className="flex justify-center"
           >
-            Form builder for fast launches
-          </motion.p>
+            <Badge
+              variant="outline"
+              className="rounded-md border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-emerald-400"
+            >
+              Forms &amp; surveys
+            </Badge>
+          </motion.div>
           <motion.h1
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.05 }}
-            className="mx-auto mt-4 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-5xl lg:text-6xl"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.7, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+            className="mx-auto mt-4 max-w-2xl text-xl font-semibold leading-snug tracking-tight text-white sm:text-2xl md:text-[1.625rem]"
           >
-            Forms that turn responses into decisions.
+            <span className="block">Create forms and surveys</span>
+            <span className="mt-1 block text-zinc-400">from a blank slate—not a template library.</span>
           </motion.h1>
           <motion.p
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-zinc-400 md:text-lg"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.65, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+            className="mx-auto mt-4 max-w-lg text-sm leading-relaxed text-zinc-500"
           >
-            Launch blank-slate forms, validate every answer, publish public or unlisted links, and
-            understand responses from one focused workspace.
+            HexForm helps teams publish surveys, enforce validation, and review responses in one
+            place.
           </motion.p>
 
           <motion.div

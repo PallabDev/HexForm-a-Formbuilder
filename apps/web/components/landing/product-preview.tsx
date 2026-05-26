@@ -2,136 +2,143 @@
 
 import { motion } from "motion/react";
 import {
-  IconChartBar,
+  IconArrowLeft,
   IconCheck,
-  IconForms,
-  IconWorld,
-  IconAlertCircle,
+  IconEdit,
+  IconGripVertical,
+  IconPlus,
+  IconTrash,
 } from "@tabler/icons-react";
 
 import { Badge } from "~/components/ui/badge";
 
-const chartHeights = [42, 68, 55, 82, 61, 74, 88, 52];
+const MOCK_QUESTIONS = [
+  { label: "Full name", type: "TEXT", required: true },
+  { label: "Email address", type: "EMAIL", required: true },
+  { label: "Year of study", type: "NUMBER", required: false },
+] as const;
 
+/** Static mock of the real dashboard form builder (Form Details + Questions). */
 export function ProductPreview() {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 32 }}
+      initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
-      className="relative mx-auto mt-12 w-full max-w-5xl"
+      transition={{ duration: 0.6, delay: 0.25, ease: [0.22, 1, 0.36, 1] }}
+      className="relative mx-auto mt-12 w-full max-w-4xl text-left"
     >
-      <div className="overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900/80 shadow-2xl shadow-black/40">
-        <div className="flex items-center gap-2 border-b border-zinc-800 bg-zinc-950/80 px-4 py-2.5">
-          <span className="size-2.5 rounded-full bg-zinc-600" />
-          <span className="size-2.5 rounded-full bg-zinc-600" />
-          <span className="size-2.5 rounded-full bg-zinc-600" />
-          <span className="ml-3 text-xs text-zinc-500">HexForm — Placement Drive 2026</span>
+      <div className="overflow-hidden rounded-lg border border-border bg-background shadow-2xl shadow-black/40">
+        {/* Builder header — matches form-builder-console */}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-card px-4 py-3 sm:px-5">
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="flex size-8 items-center justify-center rounded-md border border-border bg-muted/30 text-muted-foreground">
+              <IconArrowLeft className="size-4" />
+            </span>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-foreground">
+                Campus placement survey
+              </p>
+              <p className="text-[11px] text-muted-foreground">Form builder</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="rounded-md border border-border bg-background px-3 py-1.5 text-xs text-foreground">
+              Published
+            </span>
+            <span className="flex items-center gap-1 rounded-md border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground">
+              <IconCheck className="size-3.5 text-emerald-400" />
+              Saved
+            </span>
+          </div>
         </div>
 
-        <div className="grid gap-0 md:grid-cols-[200px_1fr_220px]">
-          {/* Builder sidebar */}
-          <div className="hidden border-r border-zinc-800 p-4 md:block">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
-              Fields
-            </p>
-            <ul className="mt-3 space-y-2">
-              {["Full name", "Email", "Year of study", "CGPA"].map((field, i) => (
-                <li
-                  key={field}
-                  className={`rounded-md border px-2.5 py-2 text-xs ${
-                    i === 0
-                      ? "border-rose-500/40 bg-rose-500/10 text-white"
-                      : "border-zinc-800 bg-zinc-950/50 text-zinc-400"
-                  }`}
+        <div className="grid gap-0 md:grid-cols-[minmax(0,280px)_1fr]">
+          {/* Form Details sidebar */}
+          <aside className="border-b border-border bg-card p-4 md:border-b-0 md:border-r md:p-5">
+            <h3 className="border-b border-border pb-3 text-sm font-medium text-foreground">
+              Form Details
+            </h3>
+            <div className="mt-4 space-y-4">
+              <div className="space-y-1.5">
+                <p className="text-xs text-muted-foreground">Name</p>
+                <div className="h-9 rounded-md border border-input bg-background px-3 text-xs leading-9 text-foreground">
+                  Campus placement survey
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <p className="text-xs text-muted-foreground">Description</p>
+                <div className="min-h-[72px] rounded-md border border-input bg-background p-3 text-xs leading-relaxed text-muted-foreground">
+                  Collect student details for the 2026 placement drive.
+                </div>
+              </div>
+              <div className="flex items-center justify-between rounded-lg border border-border bg-background p-3">
+                <div className="pr-2">
+                  <p className="text-xs font-medium text-foreground">Public Explore Listing</p>
+                  <p className="text-[11px] leading-snug text-muted-foreground">
+                    Allow others to discover this form in Explore.
+                  </p>
+                </div>
+                <div
+                  className="h-5 w-9 shrink-0 rounded-full bg-emerald-500/80 p-0.5"
+                  aria-hidden
                 >
-                  {field}
+                  <div className="ml-auto size-4 rounded-full bg-white shadow-sm" />
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          {/* Questions panel */}
+          <section className="bg-background p-4 md:p-5">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <h2 className="text-base font-semibold tracking-tight text-foreground">Questions</h2>
+              <span className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2.5 py-1 text-xs font-medium text-foreground">
+                <IconPlus className="size-3.5" />
+                Add Question
+              </span>
+            </div>
+
+            <ul className="mt-3 space-y-2.5">
+              {MOCK_QUESTIONS.map((q, idx) => (
+                <li
+                  key={q.label}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card p-3.5 transition-colors hover:border-zinc-600"
+                >
+                  <div className="flex min-w-0 items-start gap-2">
+                    <IconGripVertical className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                    <div className="min-w-0">
+                      <p className="text-[10px] text-muted-foreground">Question {idx + 1}</p>
+                      <p className="truncate text-sm font-medium text-foreground">{q.label}</p>
+                      <div className="mt-1 flex flex-wrap items-center gap-2">
+                        <Badge variant="secondary" className="text-[10px]">
+                          {q.type}
+                        </Badge>
+                        <span
+                          className={
+                            q.required ? "text-[10px] text-amber-400" : "text-[10px] text-muted-foreground"
+                          }
+                        >
+                          {q.required ? "Required" : "Optional"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <span className="inline-flex items-center rounded-md border border-border px-2 py-1 text-[10px] text-muted-foreground">
+                      <IconEdit className="mr-1 size-3" />
+                      Edit
+                    </span>
+                    <IconTrash className="size-4 text-muted-foreground" />
+                  </div>
                 </li>
               ))}
             </ul>
-            <div className="mt-4 flex items-center gap-1.5 text-[10px] text-emerald-400">
-              <IconCheck className="size-3" />
-              Validation rules active
-            </div>
-          </div>
-
-          {/* Form canvas */}
-          <div className="border-r border-zinc-800 p-4 md:p-6">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-              <h3 className="text-sm font-semibold text-white">Student Application</h3>
-              <Badge
-                variant="outline"
-                className="accent-emerald rounded-md text-[10px] font-medium uppercase"
-              >
-                <IconWorld className="mr-1 size-3" />
-                Public on Explore
-              </Badge>
-            </div>
-            <div className="space-y-3">
-              <div className="rounded-md border border-zinc-800 bg-zinc-950/60 p-3">
-                <label className="text-[10px] text-zinc-500">Full name</label>
-                <div className="mt-1 h-8 rounded-md border border-zinc-700 bg-zinc-900" />
-              </div>
-              <div className="rounded-md border border-zinc-800 bg-zinc-950/60 p-3">
-                <label className="text-[10px] text-zinc-500">Email</label>
-                <div className="mt-1 h-8 rounded-md border border-zinc-700 bg-zinc-900" />
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <motion.span
-                  animate={{ opacity: [1, 0.65, 1] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                  className="inline-flex items-center gap-1 rounded-md border border-rose-500/30 bg-rose-500/10 px-2 py-1 text-[10px] text-rose-300"
-                >
-                  <IconAlertCircle className="size-3" />
-                  Max 120 chars
-                </motion.span>
-                <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/25 bg-emerald-500/10 px-2 py-1 text-[10px] text-emerald-300">
-                  <IconCheck className="size-3" />
-                  4-digit year
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Stats panel */}
-          <div className="p-4">
-            <div className="flex items-center justify-between">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
-                Responses
-              </p>
-              <IconForms className="size-4 text-zinc-600" />
-            </div>
-            <p className="mt-1 text-2xl font-bold text-white">248</p>
-            <p className="text-[10px] text-emerald-400">+12% this week</p>
-
-            <div className="mt-4 flex h-20 items-end gap-1">
-              {chartHeights.map((h, i) => (
-                <motion.div
-                  key={i}
-                  className="flex-1 rounded-sm bg-emerald-500/70"
-                  initial={{ height: 0 }}
-                  animate={{ height: `${h}%` }}
-                  transition={{ duration: 0.5, delay: 0.3 + i * 0.05 }}
-                />
-              ))}
-            </div>
-
-            <div className="mt-4 space-y-2 border-t border-zinc-800 pt-3">
-              <div className="flex items-center justify-between text-[10px]">
-                <span className="text-zinc-500">Completion rate</span>
-                <span className="font-medium text-white">91%</span>
-              </div>
-              <div className="flex items-center justify-between text-[10px]">
-                <span className="text-zinc-500 flex items-center gap-1">
-                  <IconChartBar className="size-3" />
-                  Analytics
-                </span>
-                <span className="text-amber-400/90">Live</span>
-              </div>
-            </div>
-          </div>
+          </section>
         </div>
       </div>
+      <p className="mt-3 text-center text-[11px] text-zinc-600">
+        The same builder you use in the dashboard—form details on the left, questions on the right.
+      </p>
     </motion.div>
   );
 }
