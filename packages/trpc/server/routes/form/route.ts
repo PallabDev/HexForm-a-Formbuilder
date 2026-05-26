@@ -254,6 +254,10 @@ function getTrendDays(timezoneOffsetMinutes: number) {
   });
 }
 
+function getNumberDigitCount(value: number) {
+  return String(value).replace(/\D/g, "").length;
+}
+
 function toDateKey(value: Date) {
   const year = value.getFullYear();
   const month = String(value.getMonth() + 1).padStart(2, "0");
@@ -406,16 +410,18 @@ function validateAnswer(field: ReturnType<typeof mapField>, value: AnswerValue) 
       if (typeof value !== "string") {
         throw new TRPCError({ code: "BAD_REQUEST", message: `${field.label} must be text.` });
       }
-      if (validation.minLength && value.length < validation.minLength) {
+      const minLength = validation.minLength ?? validation.min;
+      const maxLength = validation.maxLength ?? validation.max;
+      if (typeof minLength === "number" && value.length < minLength) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: `${field.label} must have at least ${validation.minLength} characters.`,
+          message: `${field.label} must have at least ${minLength} characters.`,
         });
       }
-      if (validation.maxLength && value.length > validation.maxLength) {
+      if (typeof maxLength === "number" && value.length > maxLength) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: `${field.label} must have at most ${validation.maxLength} characters.`,
+          message: `${field.label} must have at most ${maxLength} characters.`,
         });
       }
       return value;
@@ -450,6 +456,21 @@ function validateAnswer(field: ReturnType<typeof mapField>, value: AnswerValue) 
     case "RATING": {
       if (typeof value !== "number" || Number.isNaN(value)) {
         throw new TRPCError({ code: "BAD_REQUEST", message: `${field.label} must be a number.` });
+      }
+      if (field.type === "NUMBER") {
+        const digitCount = getNumberDigitCount(value);
+        if (typeof validation.minLength === "number" && digitCount < validation.minLength) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `${field.label} must have at least ${validation.minLength} digits.`,
+          });
+        }
+        if (typeof validation.maxLength === "number" && digitCount > validation.maxLength) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `${field.label} must have at most ${validation.maxLength} digits.`,
+          });
+        }
       }
       const min = validation.min ?? (field.type === "RATING" ? 1 : undefined);
       const max = validation.max ?? (field.type === "RATING" ? 5 : undefined);

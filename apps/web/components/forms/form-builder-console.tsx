@@ -217,10 +217,20 @@ export function FormBuilderConsole({ formId }: FormBuilderConsoleProps) {
         setFieldOptions(field.options ?? []);
 
         const val = field.validation as any;
-        setValidationMin(val?.min);
-        setValidationMax(val?.max);
-        setValidationMinLength(val?.minLength);
-        setValidationMaxLength(val?.maxLength);
+        const isTextField = field.type === "TEXT" || field.type === "LONG_TEXT";
+        const isNumericField = field.type === "NUMBER" || field.type === "RATING";
+        setValidationMin(isNumericField ? val?.min : undefined);
+        setValidationMax(isNumericField ? val?.max : undefined);
+        setValidationMinLength(
+            isTextField || field.type === "NUMBER"
+                ? (val?.minLength ?? (isTextField ? val?.min : undefined))
+                : undefined
+        );
+        setValidationMaxLength(
+            isTextField || field.type === "NUMBER"
+                ? (val?.maxLength ?? (isTextField ? val?.max : undefined))
+                : undefined
+        );
 
         setIsFieldModalOpen(true);
     };
@@ -253,10 +263,18 @@ export function FormBuilderConsole({ formId }: FormBuilderConsoleProps) {
         }
 
         const validation: Record<string, any> = {};
-        if (validationMin !== undefined) validation.min = validationMin;
-        if (validationMax !== undefined) validation.max = validationMax;
-        if (validationMinLength !== undefined) validation.minLength = validationMinLength;
-        if (validationMaxLength !== undefined) validation.maxLength = validationMaxLength;
+        if (fieldType === "NUMBER" || fieldType === "RATING") {
+            if (validationMin !== undefined) validation.min = validationMin;
+            if (validationMax !== undefined) validation.max = validationMax;
+        }
+        if (fieldType === "NUMBER") {
+            if (validationMinLength !== undefined) validation.minLength = validationMinLength;
+            if (validationMaxLength !== undefined) validation.maxLength = validationMaxLength;
+        }
+        if (fieldType === "TEXT" || fieldType === "LONG_TEXT") {
+            if (validationMinLength !== undefined) validation.minLength = validationMinLength;
+            if (validationMaxLength !== undefined) validation.maxLength = validationMaxLength;
+        }
 
         setSyncStatus("SYNCING");
         try {
@@ -694,6 +712,29 @@ export function FormBuilderConsole({ formId }: FormBuilderConsoleProps) {
                                             type="number"
                                             value={validationMax !== undefined ? validationMax : ""}
                                             onChange={(e) => setValidationMax(e.target.value === "" ? undefined : Number(e.target.value))}
+                                            className="text-sm"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            {fieldType === "NUMBER" && (
+                                <div className="grid gap-4 grid-cols-2 p-4 border border-border rounded-lg bg-background">
+                                    <div className="space-y-1.5">
+                                        <Label className="text-xs text-muted-foreground">Min Digits</Label>
+                                        <Input
+                                            type="number"
+                                            value={validationMinLength !== undefined ? validationMinLength : ""}
+                                            onChange={(e) => setValidationMinLength(e.target.value === "" ? undefined : Number(e.target.value))}
+                                            className="text-sm"
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label className="text-xs text-muted-foreground">Max Digits</Label>
+                                        <Input
+                                            type="number"
+                                            value={validationMaxLength !== undefined ? validationMaxLength : ""}
+                                            onChange={(e) => setValidationMaxLength(e.target.value === "" ? undefined : Number(e.target.value))}
                                             className="text-sm"
                                         />
                                     </div>
