@@ -68,3 +68,26 @@ export const useUser = () => {
     const { data: user, error, isFetching, isFetched, status, isLoading } = trpc.auth.getLoggedInUserInfo.useQuery()
     return { user, error, isFetching, isFetched, status, isLoading }
 }
+
+export const useSignout = (options?: { onSuccess?: () => void }) => {
+    const utils = trpc.useUtils()
+    const {
+        mutateAsync: signOutAsync,
+        mutate: signOut,
+        error,
+        status
+    } = trpc.auth.signOut.useMutation({
+        onSuccess: async () => {
+            await utils.auth.getLoggedInUserInfo.invalidate()
+            if (options?.onSuccess) {
+                options.onSuccess()
+            }
+        }
+    })
+    return {
+        signOutAsync,
+        signOut,
+        error,
+        status
+    }
+}

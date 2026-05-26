@@ -9,6 +9,8 @@ import {
 } from "@tabler/icons-react"
 
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { useSignout } from "~/hooks/api/auth"
 import {
     Avatar,
     AvatarFallback,
@@ -40,6 +42,12 @@ export function NavUser({
     }
 }) {
     const { isMobile } = useSidebar()
+    const router = useRouter()
+    const { signOut } = useSignout({
+        onSuccess: () => {
+            router.push("/signin")
+        }
+    })
 
     return (
         <SidebarMenu>
@@ -100,11 +108,7 @@ export function NavUser({
                         </DropdownMenuGroup>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => {
-                            // Clear cookies or redirect
-                            if (typeof window !== "undefined") {
-                                document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-                                window.location.href = "/signin";
-                            }
+                            signOut()
                         }}>
                             <IconLogout className="mr-2 size-4" />
                             Log out

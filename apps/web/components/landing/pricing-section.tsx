@@ -7,7 +7,7 @@ import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
 import { LandingSectionHeader } from "~/components/landing/landing-section-header";
 import { useUser } from "~/hooks/api/auth";
-import { trpc } from "~/trpc/client";
+import { useSubscription } from "~/hooks/api/product";
 import {
   LANDING_PLANS,
   getPlanCta,
@@ -20,7 +20,7 @@ export function PricingSection() {
   const { user } = useUser();
   const isLoggedIn = Boolean(user?.id);
 
-  const { data: subscription } = trpc.product.getSubscription.useQuery(undefined, {
+  const { data: subscription } = useSubscription({
     enabled: isLoggedIn,
     retry: false,
   });

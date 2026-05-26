@@ -1,13 +1,12 @@
 "use client";
 
-import { Button } from "~/components/ui/button";
 import { Separator } from "~/components/ui/separator";
 import { SidebarTrigger } from "~/components/ui/sidebar";
 import { Badge } from "~/components/ui/badge";
-import { trpc } from "~/trpc/client";
+import { useSubscription } from "~/hooks/api/product";
 
 export function SiteHeader() {
-  const { data: subscription } = trpc.product.getSubscription.useQuery();
+  const { data: subscription } = useSubscription();
   const planCode = subscription?.planCode || "free";
 
   let badgeText = "Free";

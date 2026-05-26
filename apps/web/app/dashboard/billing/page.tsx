@@ -12,8 +12,14 @@ import Link from "next/link";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
 import { DashboardPageHeader } from "~/components/dashboard/dashboard-page-header";
-import { trpc } from "~/trpc/client";
 import { useUser } from "~/hooks/api/auth";
+import {
+  usePlans,
+  useSubscription,
+  useCheckout,
+  useVerifyPayment,
+  useCancelSubscription,
+} from "~/hooks/api/product";
 import { cn } from "~/lib/utils";
 
 interface CheckoutResponse {
@@ -56,13 +62,13 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 export default function BillingPage() {
   const { user } = useUser();
 
-  const { data: plans, isLoading: isPlansLoading } = trpc.product.listPlans.useQuery();
+  const { data: plans, isLoading: isPlansLoading } = usePlans();
   const { data: subscription, isLoading: isSubLoading, refetch: refetchSub } =
-    trpc.product.getSubscription.useQuery();
+    useSubscription();
 
-  const checkoutMutation = trpc.product.checkout.useMutation();
-  const verifyPaymentMutation = trpc.product.verifyPayment.useMutation();
-  const cancelSubMutation = trpc.product.cancelSubscription.useMutation();
+  const checkoutMutation = useCheckout();
+  const verifyPaymentMutation = useVerifyPayment();
+  const cancelSubMutation = useCancelSubscription();
 
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import {
   IconForms,
@@ -29,7 +29,7 @@ import {
   SheetTrigger,
 } from "~/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
-import { useUser } from "~/hooks/api/auth";
+import { useUser, useSignout } from "~/hooks/api/auth";
 import { NAV_SECTIONS, getSignInHref } from "~/lib/landing-plans";
 import { cn } from "~/lib/utils";
 
@@ -70,9 +70,16 @@ function NavLinks({
 }
 
 export function MainNavbar() {
+  const router = useRouter();
   const { user, isLoading } = useUser();
   const [scrolled, setScrolled] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
+
+  const { signOut } = useSignout({
+    onSuccess: () => {
+      router.push("/signin");
+    },
+  });
 
   const isLoggedIn = Boolean(user?.id);
 
@@ -160,10 +167,7 @@ export function MainNavbar() {
                 <DropdownMenuSeparator className="bg-zinc-800" />
                 <DropdownMenuItem
                   onClick={() => {
-                    if (typeof window !== "undefined") {
-                      document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-                      window.location.href = "/signin";
-                    }
+                    signOut();
                   }}
                   className="cursor-pointer text-rose-400 hover:text-rose-500 focus:text-rose-500"
                 >

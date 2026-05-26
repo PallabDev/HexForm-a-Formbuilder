@@ -1,6 +1,7 @@
+import { z } from "zod";
 import { userService } from "../../services";
 import { authenticatedProcedure, publicProcedure, router } from "../../trpc";
-import { setAuthenticationCookies } from "../../utils/cookie";
+import { clearAuthenticationCookie, setAuthenticationCookies } from "../../utils/cookie";
 import { generatePath } from "../../utils/path-generator";
 import {
   createUserWithEmailAndPasswordInuptModel,
@@ -74,5 +75,20 @@ export const authRouter = router({
         fullName: ctx.user.fullName,
         profileImageUrl: ctx.user.profileImageUrl,
       };
+    }),
+
+  signOut: publicProcedure
+    .meta({
+      openapi: {
+        method: "POST",
+        path: getPath("/signOut"),
+        tags: TAGS,
+      },
+    })
+    .input(z.object({}).optional())
+    .output(z.object({ success: z.boolean() }))
+    .mutation(async ({ ctx }) => {
+      clearAuthenticationCookie(ctx);
+      return { success: true };
     }),
 });

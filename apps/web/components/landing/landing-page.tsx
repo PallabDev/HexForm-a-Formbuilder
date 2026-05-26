@@ -274,11 +274,11 @@ export function LandingPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.75, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-            className="mx-auto mt-5 max-w-3xl text-2xl font-bold leading-[1.25] tracking-tight sm:text-3xl md:text-4xl md:leading-[1.2]"
+            className="mx-auto mt-5 max-w-3xl text-2xl font-bold leading-[1.25] tracking-tight sm:text-3xl md:text-5xl md:leading-[1.2]"
           >
-            <span className="block text-white">Create forms and surveys</span>
+            <span className="block text-white">Create forms from zero</span>
             <span className="mt-2 block text-zinc-400">
-              from a blank slate—not a template library.
+              Limitless. Flexible. Customizable.
             </span>
           </motion.h1>
           <motion.p

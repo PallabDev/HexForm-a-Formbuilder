@@ -12,6 +12,7 @@ import {
     IconSettings,
     IconTools,
     IconChartBar,
+    IconShare3,
 } from "@tabler/icons-react";
 import toast from "react-hot-toast";
 import { Badge } from "~/components/ui/badge";
@@ -33,6 +34,7 @@ import {
     useUnpublishForm,
     useFormAnalytics,
 } from "~/hooks/api/forms";
+import { ShareFormDialog } from "~/components/forms/share-form-dialog";
 
 interface FormOverviewConsoleProps {
     formId: string;
@@ -45,6 +47,7 @@ export function FormOverviewConsole({ formId }: FormOverviewConsoleProps) {
     const unpublishForm = useUnpublishForm();
     const { analytics } = useFormAnalytics(formId, Boolean(formId));
 
+    const [isShareOpen, setIsShareOpen] = useState(false);
     const [draftTitle, setDraftTitle] = useState("");
     const [draftDescription, setDraftDescription] = useState("");
     const [draftVisibility, setDraftVisibility] = useState<"PUBLIC" | "UNLISTED">("UNLISTED");
@@ -294,9 +297,9 @@ export function FormOverviewConsole({ formId }: FormOverviewConsoleProps) {
                         </div>
 
                         <div className="pt-3 border-t border-border space-y-2">
-                            <Button onClick={copyShareLink} variant="outline" size="sm" className="w-full cursor-pointer">
-                                <IconCopy className="size-3.5 mr-1.5" />
-                                Copy Link
+                            <Button onClick={() => setIsShareOpen(true)} variant="outline" size="sm" className="w-full cursor-pointer">
+                                <IconShare3 className="size-3.5 mr-1.5" />
+                                Share Form
                             </Button>
                             <Button asChild variant="outline" size="sm" className="w-full cursor-pointer">
                                 <Link href={`/f/${form.slug}`} target="_blank">
@@ -398,6 +401,13 @@ export function FormOverviewConsole({ formId }: FormOverviewConsoleProps) {
                     </div>
                 </section>
             </div>
+
+            <ShareFormDialog
+                isOpen={isShareOpen}
+                onClose={() => setIsShareOpen(false)}
+                formTitle={form.title}
+                slug={form.slug}
+            />
         </main>
     );
 }

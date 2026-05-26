@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
     IconPlus,
@@ -16,6 +16,7 @@ import toast from "react-hot-toast";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { useMyForms, useCreateForm, useArchiveForm } from "~/hooks/api/forms";
+import { ShareFormDialog } from "~/components/forms/share-form-dialog";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -32,6 +33,7 @@ export function FormsListConsole() {
     const { forms, isLoading, refetch: refetchForms } = useMyForms({ limit: 50 });
     const createForm = useCreateForm();
     const archiveForm = useArchiveForm();
+    const [shareForm, setShareForm] = useState<{ slug: string; title: string } | null>(null);
 
     const activeForms = useMemo(() => forms.filter((f) => f.status !== "ARCHIVED"), [forms]);
 
@@ -223,7 +225,7 @@ export function FormsListConsole() {
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        onClick={() => copyShareLink(item.slug)}
+                                        onClick={() => setShareForm({ slug: item.slug, title: item.title })}
                                         className="h-10 cursor-pointer rounded-md border-zinc-700 bg-zinc-950 text-sm text-zinc-100 hover:bg-zinc-900 hover:text-white"
                                     >
                                         <IconLink className="size-4 mr-1 text-amber-300" />
@@ -247,6 +249,13 @@ export function FormsListConsole() {
                     ))}
                 </section>
             )}
+
+            <ShareFormDialog
+                isOpen={shareForm !== null}
+                onClose={() => setShareForm(null)}
+                formTitle={shareForm?.title ?? ""}
+                slug={shareForm?.slug ?? ""}
+            />
         </main>
     );
 }
