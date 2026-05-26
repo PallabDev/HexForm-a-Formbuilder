@@ -218,17 +218,17 @@ export function FormBuilderConsole({ formId }: FormBuilderConsoleProps) {
 
         const val = field.validation as any;
         const isTextField = field.type === "TEXT" || field.type === "LONG_TEXT";
-        const isNumericField = field.type === "NUMBER" || field.type === "RATING";
+        const isNumericField = field.type === "NUMBER";
         setValidationMin(isNumericField ? val?.min : undefined);
         setValidationMax(isNumericField ? val?.max : undefined);
         setValidationMinLength(
-            isTextField || field.type === "NUMBER"
-                ? (val?.minLength ?? (isTextField ? val?.min : undefined))
+            isTextField
+                ? (val?.minLength ?? val?.min)
                 : undefined
         );
         setValidationMaxLength(
-            isTextField || field.type === "NUMBER"
-                ? (val?.maxLength ?? (isTextField ? val?.max : undefined))
+            isTextField
+                ? (val?.maxLength ?? val?.max)
                 : undefined
         );
 
@@ -263,13 +263,9 @@ export function FormBuilderConsole({ formId }: FormBuilderConsoleProps) {
         }
 
         const validation: Record<string, any> = {};
-        if (fieldType === "NUMBER" || fieldType === "RATING") {
+        if (fieldType === "NUMBER") {
             if (validationMin !== undefined) validation.min = validationMin;
             if (validationMax !== undefined) validation.max = validationMax;
-        }
-        if (fieldType === "NUMBER") {
-            if (validationMinLength !== undefined) validation.minLength = validationMinLength;
-            if (validationMaxLength !== undefined) validation.maxLength = validationMaxLength;
         }
         if (fieldType === "TEXT" || fieldType === "LONG_TEXT") {
             if (validationMinLength !== undefined) validation.minLength = validationMinLength;
@@ -598,7 +594,7 @@ export function FormBuilderConsole({ formId }: FormBuilderConsoleProps) {
                             </div>
 
                             {/* Placeholder */}
-                            {fieldType !== "CHECKBOX" && fieldType !== "YES_NO" && fieldType !== "DATE" && (
+                            {fieldType !== "CHECKBOX" && fieldType !== "YES_NO" && fieldType !== "DATE" && fieldType !== "SELECT" && fieldType !== "RATING" && (
                                 <div className="space-y-2">
                                     <Label htmlFor="modal-placeholder" className="text-xs text-muted-foreground">Placeholder</Label>
                                     <Input
@@ -695,7 +691,7 @@ export function FormBuilderConsole({ formId }: FormBuilderConsoleProps) {
                             )}
 
                             {/* NUMBER Validation */}
-                            {(fieldType === "NUMBER" || fieldType === "RATING") && (
+                            {fieldType === "NUMBER" && (
                                 <div className="grid gap-4 grid-cols-2 p-4 border border-border rounded-lg bg-background">
                                     <div className="space-y-1.5">
                                         <Label className="text-xs text-muted-foreground">Min Value</Label>
@@ -712,29 +708,6 @@ export function FormBuilderConsole({ formId }: FormBuilderConsoleProps) {
                                             type="number"
                                             value={validationMax !== undefined ? validationMax : ""}
                                             onChange={(e) => setValidationMax(e.target.value === "" ? undefined : Number(e.target.value))}
-                                            className="text-sm"
-                                        />
-                                    </div>
-                                </div>
-                            )}
-
-                            {fieldType === "NUMBER" && (
-                                <div className="grid gap-4 grid-cols-2 p-4 border border-border rounded-lg bg-background">
-                                    <div className="space-y-1.5">
-                                        <Label className="text-xs text-muted-foreground">Min Digits</Label>
-                                        <Input
-                                            type="number"
-                                            value={validationMinLength !== undefined ? validationMinLength : ""}
-                                            onChange={(e) => setValidationMinLength(e.target.value === "" ? undefined : Number(e.target.value))}
-                                            className="text-sm"
-                                        />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <Label className="text-xs text-muted-foreground">Max Digits</Label>
-                                        <Input
-                                            type="number"
-                                            value={validationMaxLength !== undefined ? validationMaxLength : ""}
-                                            onChange={(e) => setValidationMaxLength(e.target.value === "" ? undefined : Number(e.target.value))}
                                             className="text-sm"
                                         />
                                     </div>

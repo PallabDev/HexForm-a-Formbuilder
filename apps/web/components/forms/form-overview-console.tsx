@@ -125,13 +125,6 @@ export function FormOverviewConsole({ formId }: FormOverviewConsoleProps) {
         }
     };
 
-    const copyShareLink = () => {
-        if (!form) return;
-        const link = `${window.location.origin}/f/${form.slug}`;
-        void navigator.clipboard.writeText(link);
-        toast.success("Link copied to clipboard!");
-    };
-
     if (isLoading) {
         return (
             <main className="min-h-[calc(100dvh-6rem)] flex items-center justify-center p-4">

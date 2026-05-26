@@ -63,12 +63,6 @@ export function FormsListConsole() {
         }
     };
 
-    const copyShareLink = (slug: string) => {
-        const link = `${window.location.origin}/f/${slug}`;
-        void navigator.clipboard.writeText(link);
-        toast.success("Share link copied to clipboard!");
-    };
-
     if (isLoading) {
         return (
             <main className="min-h-[calc(100dvh-6rem)] flex items-center justify-center p-4">

@@ -18,14 +18,23 @@ const openApiDocument = generateOpenApiDocument(serverRouter, {
     baseUrl: env.BASE_URL.concat("/api"),
 });
 
-if (env.NODE_ENV !== "prod") {
-    app.use(
-        cors({
-            origin: "http://localhost:3000",
-            credentials: true,
-        }),
-    );
-}
+const allowedOrigins = [
+    "http://localhost:3000",
+    ...(env.ALLOWED_ORIGIN ? env.ALLOWED_ORIGIN.split(",").map((o) => o.trim()) : []),
+];
+
+app.use(
+    cors({
+        origin: (origin, callback) => {
+            if (!origin || allowedOrigins.includes(origin) || origin.endsWith(".vercel.app")) {
+                callback(null, true);
+            } else {
+                callback(new Error(`Origin ${origin} not allowed by CORS`));
+            }
+        },
+        credentials: true,
+    }),
+);
 
 app.use(express.json());
 app.use(cookieParser())
