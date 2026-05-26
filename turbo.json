@@ -6,6 +6,15 @@
             "dependsOn": [
                 "^build"
             ],
+            "env": [
+                "NEXT_PUBLIC_API_URL",
+                "NODE_ENV",
+                "PORT",
+                "BACKEND_PORT",
+                "FRONTEND_PORT",
+                "BASE_URL",
+                "ALLOWED_ORIGIN"
+            ],
             "inputs": [
                 "$TURBO_DEFAULT$",
                 ".env*"

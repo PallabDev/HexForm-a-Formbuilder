@@ -109,8 +109,11 @@ jobs:
             echo "BUILDING"
             echo "================================="
 
-            # Remove stale Next.js build locks to prevent 'Unable to acquire lock' build failures
+            # Clear stale caches and lockfiles to force a completely fresh, updated build
             rm -f apps/web/.next/lock
+            rm -rf apps/web/.next
+            rm -rf apps/api/dist
+            rm -rf .turbo
 
             NODE_OPTIONS="--max-old-space-size=4096" pnpm build
 
