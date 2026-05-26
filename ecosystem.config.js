@@ -1,7 +1,7 @@
 module.exports = {
     apps: [
         {
-            name: "frontend",
+            name: "hexform-frontend",
             cwd: "/root/projects/HexForm-a-Formbuilder",
             script: "pnpm",
             args: "--filter web start",
@@ -11,7 +11,7 @@ module.exports = {
             },
         },
         {
-            name: "backend",
+            name: "hexform-backend",
             cwd: "/root/projects/HexForm-a-Formbuilder",
             script: "pnpm",
             args: "--filter @repo/api start",
