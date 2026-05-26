@@ -6,7 +6,7 @@ module.exports = {
             script: "pnpm",
             args: "--filter web start",
             env: {
-                NODE_ENV: "production",
+                NODE_ENV: "prod",
                 PORT: 5600,
             },
         },
@@ -16,7 +16,7 @@ module.exports = {
             script: "pnpm",
             args: "--filter @repo/api start",
             env: {
-                NODE_ENV: "production",
+                NODE_ENV: "prod",
                 PORT: 8600,
             },
         },
