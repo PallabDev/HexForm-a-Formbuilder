@@ -118,9 +118,11 @@
   html {
     scroll-behavior: smooth;
   }
+
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground antialiased;
   }
@@ -146,6 +148,7 @@
   color: #09090b;
   border: 1px solid rgba(251, 113, 133, 0.4);
 }
+
 .cta-primary:hover {
   background: linear-gradient(135deg, #fda4af 0%, #fb7185 100%);
   color: #09090b;
@@ -156,6 +159,7 @@
   color: #09090b;
   border: 1px solid rgba(251, 113, 133, 0.35);
 }
+
 .val-btn-red:hover {
   background: linear-gradient(135deg, #fda4af 0%, #fb7185 100%);
 }
@@ -174,25 +178,31 @@
 .ProseMirror {
   outline: none;
 }
+
 .ProseMirror p {
   margin-bottom: 0.5rem;
 }
+
 .ProseMirror p:last-child {
   margin-bottom: 0;
 }
+
 .ProseMirror ul {
   list-style-type: disc !important;
   padding-left: 1.25rem !important;
   margin-bottom: 0.5rem !important;
 }
+
 .ProseMirror ol {
   list-style-type: decimal !important;
   padding-left: 1.25rem !important;
   margin-bottom: 0.5rem !important;
 }
+
 .ProseMirror li {
   margin-bottom: 0.25rem !important;
 }
+
 .ProseMirror blockquote {
   border-left: 3px solid #27272a !important;
   padding-left: 0.75rem !important;
@@ -200,6 +210,7 @@
   font-style: italic !important;
   margin: 0.5rem 0 !important;
 }
+
 .ProseMirror pre {
   background-color: #18181b !important;
   padding: 0.5rem !important;
@@ -208,6 +219,7 @@
   overflow-x: auto !important;
   margin: 0.5rem 0 !important;
 }
+
 .ProseMirror code {
   background-color: #18181b !important;
   padding: 0.1rem 0.25rem !important;
@@ -216,26 +228,26 @@
 }
 
 /* Custom Scrollbar Styles */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+*::-webkit-scrollbar {
+  width: 6px !important;
+  height: 6px !important;
 }
 
-::-webkit-scrollbar-track {
-  background: #09090b;
+*::-webkit-scrollbar-track {
+  background: #09090b !important;
 }
 
-::-webkit-scrollbar-thumb {
-  background: #f43f5e;
-  border-radius: 9999px;
+*::-webkit-scrollbar-thumb {
+  background: #27272a !important; /* Subtle grayish/zinc */
+  border-radius: 9999px !important;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #fb7185;
+*::-webkit-scrollbar-thumb:hover {
+  background: #f43f5e !important; /* Subtle reddish accent on hover */
 }
 
 /* Firefox compatibility */
 * {
-  scrollbar-width: thin;
-  scrollbar-color: #f43f5e #09090b;
+  scrollbar-width: thin !important;
+  scrollbar-color: #27272a #09090b !important;
 }
