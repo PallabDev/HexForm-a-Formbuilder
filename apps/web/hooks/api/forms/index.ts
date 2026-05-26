@@ -10,6 +10,15 @@ export const useMyForms = (input?: RouterInputs["form"]["listMine"]) => {
   };
 };
 
+export const useDashboardActivity = (input?: RouterInputs["form"]["dashboardActivity"]) => {
+  const query = trpc.form.dashboardActivity.useQuery(input);
+
+  return {
+    activity: query.data ?? [],
+    ...query,
+  };
+};
+
 export const useForm = (id: string, enabled = true) => {
   const query = trpc.form.getMineById.useQuery({ id }, { enabled: Boolean(id) && enabled });
 

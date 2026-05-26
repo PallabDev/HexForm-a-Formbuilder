@@ -1,8 +1,10 @@
 "use client"
 
+import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { cn } from "~/lib/utils"
 import { Button } from "~/components/ui/button"
+import { Alert, AlertDescription } from "~/components/ui/alert"
 import {
     Card,
     CardContent,
@@ -20,6 +22,7 @@ import { Input } from "~/components/ui/input"
 import { useSignin } from "~/hooks/api/auth"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { getSafeAuthErrorMessage } from "~/lib/auth-error"
 
 export type LoginFormValues = {
     email: string
@@ -31,6 +34,7 @@ export function LoginForm({
     ...props
 }: React.ComponentProps<"div">) {
     const router = useRouter()
+    const [authError, setAuthError] = useState<string | null>(null)
     const { register, handleSubmit } = useForm<LoginFormValues>({
         defaultValues: {
             email: "",
@@ -39,17 +43,27 @@ export function LoginForm({
     })
 
 
-    const { signInUserWithEmailAndPasswordAsync, error } = useSignin();
+    const { signInUserWithEmailAndPasswordAsync, status } = useSignin();
+    const isSubmitting = status === "pending"
+
     async function handleLogin(values: LoginFormValues) {
-        console.log(values)
-        const { id } = await signInUserWithEmailAndPasswordAsync({
-            email: values.email,
-            password: values.password
-        })
-        if (!id) {
-            alert(error)
+        setAuthError(null)
+
+        try {
+            const { id } = await signInUserWithEmailAndPasswordAsync({
+                email: values.email,
+                password: values.password
+            })
+
+            if (!id) {
+                setAuthError("Unable to sign in right now. Please try again.")
+                return
+            }
+
+            router.replace("/")
+        } catch (error) {
+            setAuthError(getSafeAuthErrorMessage(error, "Unable to sign in. Please check your details and try again."))
         }
-        router.replace("/")
 
     }
 
@@ -65,6 +79,11 @@ export function LoginForm({
                 <CardContent>
                     <form onSubmit={handleSubmit(handleLogin)} noValidate>
                         <FieldGroup>
+                            {authError && (
+                                <Alert variant="destructive">
+                                    <AlertDescription>{authError}</AlertDescription>
+                                </Alert>
+                            )}
                             <Field>
                                 <FieldLabel htmlFor="email">Email</FieldLabel>
                                 <Input
@@ -93,7 +112,9 @@ export function LoginForm({
                                 />
                             </Field>
                             <Field>
-                                <Button type="submit">Login</Button>
+                                <Button type="submit" disabled={isSubmitting}>
+                                    {isSubmitting ? "Logging in..." : "Login"}
+                                </Button>
                                 <FieldDescription className="text-center">
                                     Don&apos;t have an account? <Link href="/signup">Sign up</Link>
                                 </FieldDescription>

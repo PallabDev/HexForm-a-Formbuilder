@@ -38,7 +38,7 @@ class UserService {
         // check user already exists or not
         const existingUserWithEmail = await this.getUserByEmail(email);
 
-        if (existingUserWithEmail) throw new Error(`user with email ${email} already exists`);
+        if (existingUserWithEmail) throw new Error(`An account with this email already exists.`);
 
         const salt = randomBytes(16).toString("hex")
 
@@ -53,7 +53,7 @@ class UserService {
         }).returning({
             id: usersTable.id
         })
-        if (!createdUser || createdUser.length === 0 || !createdUser[0]?.id) throw new Error(`something went wrong while creating a user`)
+        if (!createdUser || createdUser.length === 0 || !createdUser[0]?.id) throw new Error(`Unable to create your account right now.`)
         const userId = createdUser[0].id;
 
 
@@ -71,12 +71,12 @@ class UserService {
         const { email, password } = await signInUserWithEmailAndPasswordInput.parseAsync(payload)
         const user = await this.getUserByEmail(email);
 
-        if (!user) throw new Error(`user with email ${email} does not exists`)
-        if (!user.password || !user.salt) throw new Error(`Wrong login method`)
+        if (!user) throw new Error(`Invalid email or password.`)
+        if (!user.password || !user.salt) throw new Error(`Please use the original sign-in method for this account.`)
 
 
         const hash = this.generateHash(password, user.salt);
-        if (user.password !== hash) throw new Error(`wrong password`)
+        if (user.password !== hash) throw new Error(`Invalid email or password.`)
 
 
         const { token } = await this.generateUserToken({ id: user.id })
@@ -93,7 +93,7 @@ class UserService {
             const verificationResult = JWT.verify(token, env.JWT_SECRET) as generateUserTokenPayloadType
             return verificationResult;
         } catch (error) {
-            throw new Error(`Invalid Token`)
+            throw new Error(`Your session is invalid or expired. Please sign in again.`)
         }
     }
 
@@ -105,7 +105,7 @@ class UserService {
             profileImageUrl: usersTable.profileImageUrl
 
         }).from(usersTable).where(eq(usersTable.id, id)).limit(1)
-        if (!user) throw new Error(`user with id ${id} does not exists`)
+        if (!user) throw new Error(`User account was not found.`)
         return user
     }
     public async verfiyAndDecodeUserByToken(token: string) {

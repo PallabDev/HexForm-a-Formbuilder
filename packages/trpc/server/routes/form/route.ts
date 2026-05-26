@@ -160,6 +160,8 @@ import {
   analyticsOutputModel,
   createFieldInputModel,
   createFormInputModel,
+  dashboardActivityInputModel,
+  dashboardActivityOutputModel,
   deleteFieldInputModel,
   formFieldOutputModel,
   formIdInputModel,
@@ -182,7 +184,6 @@ import {
 
 const TAGS = ["Forms"];
 const getPath = generatePath("/forms");
-const DEFAULT_SUBMISSION_LIMIT = 100;
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const RATE_LIMIT_MAX_REQUESTS = 12;
 
@@ -236,6 +237,28 @@ function assertRateLimit(key: string) {
   }
 
   current.count += 1;
+}
+
+function shiftDateByTimezoneOffset(value: Date, timezoneOffsetMinutes: number) {
+  return new Date(value.getTime() - timezoneOffsetMinutes * 60 * 1000);
+}
+
+function getTrendDays(timezoneOffsetMinutes: number) {
+  const today = shiftDateByTimezoneOffset(new Date(), timezoneOffsetMinutes);
+  today.setHours(0, 0, 0, 0);
+
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(today);
+    date.setDate(today.getDate() - 6 + index);
+    return date;
+  });
+}
+
+function toDateKey(value: Date) {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 async function createUniqueSlug(title: string, requestedSlug?: string) {
@@ -316,7 +339,6 @@ function mapForm(form: typeof formsTable.$inferSelect, fields: ReturnType<typeof
     visibility: form.visibility,
     slug: form.slug,
     isAcceptingSubmissions: form.isAcceptingSubmissions,
-    submissionLimit: form.submissionLimit,
     submissionCount: form.submissionCount,
     publishedAt: toIso(form.publishedAt),
     createdAt: toIso(form.createdAt),
@@ -532,6 +554,52 @@ export const formRouter = router({
       });
     }),
 
+  dashboardActivity: authenticatedProcedure
+    .meta({ openapi: { method: "GET", path: getPath("/dashboard/activity"), tags: TAGS } })
+    .input(dashboardActivityInputModel)
+    .output(dashboardActivityOutputModel)
+    .query(async ({ input, ctx }) => {
+      const timezoneOffsetMinutes = input?.timezoneOffsetMinutes ?? 0;
+      const trendDays = getTrendDays(timezoneOffsetMinutes);
+      const rangeStart = new Date(trendDays[0]!.getTime() + timezoneOffsetMinutes * 60 * 1000);
+      const rangeEnd = new Date(trendDays[6]!.getTime() + timezoneOffsetMinutes * 60 * 1000);
+      rangeEnd.setUTCDate(rangeEnd.getUTCDate() + 1);
+
+      const submissions = await db
+        .select({
+          submittedAt: formSubmissionsTable.submittedAt,
+        })
+        .from(formSubmissionsTable)
+        .innerJoin(formsTable, eq(formSubmissionsTable.formId, formsTable.id))
+        .where(
+          and(
+            eq(formsTable.ownerId, ctx.user.id),
+            sql`${formsTable.status} != 'ARCHIVED'`,
+            sql`${formSubmissionsTable.submittedAt} >= ${rangeStart}`,
+            sql`${formSubmissionsTable.submittedAt} < ${rangeEnd}`,
+          ),
+        );
+
+      const countsByDate = new Map(trendDays.map((date) => [toDateKey(date), 0]));
+
+      for (const submission of submissions) {
+        if (!submission.submittedAt) continue;
+        const localDate = shiftDateByTimezoneOffset(submission.submittedAt, timezoneOffsetMinutes);
+        localDate.setHours(0, 0, 0, 0);
+        const dateKey = toDateKey(localDate);
+        countsByDate.set(dateKey, (countsByDate.get(dateKey) ?? 0) + 1);
+      }
+
+      return trendDays.map((date) => {
+        const dateKey = toDateKey(date);
+        return {
+          date: dateKey,
+          day: date.toLocaleDateString("en-US", { weekday: "short" }),
+          responses: countsByDate.get(dateKey) ?? 0,
+        };
+      });
+    }),
+
   getMineById: authenticatedProcedure
     .meta({ openapi: { method: "POST", path: getPath("/mine/get"), tags: TAGS } })
     .input(formIdInputModel)
@@ -575,7 +643,6 @@ export const formRouter = router({
           posterUrl: input.posterUrl,
           slug,
           visibility: input.visibility ?? "UNLISTED",
-          submissionLimit: input.submissionLimit ?? DEFAULT_SUBMISSION_LIMIT,
         })
         .returning();
 
@@ -631,8 +698,6 @@ export const formRouter = router({
       if (input.description !== undefined) updatePayload.description = input.description;
       if (input.posterUrl !== undefined) updatePayload.posterUrl = input.posterUrl;
       if (input.visibility !== undefined) updatePayload.visibility = input.visibility;
-      if (input.submissionLimit !== undefined)
-        updatePayload.submissionLimit = input.submissionLimit;
       if (input.slug !== undefined) updatePayload.slug = slugify(input.slug);
 
       const [updatedForm] = await db
@@ -959,13 +1024,6 @@ export const formRouter = router({
       }
 
       const subPlan = await getUserSubscriptionPlan(form.ownerId);
-      if (form.submissionLimit !== null && form.submissionCount >= form.submissionLimit) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "This form has reached its response limit.",
-        });
-      }
-
       if (form.submissionCount >= subPlan.submissionLimit) {
         throw new TRPCError({
           code: "FORBIDDEN",
@@ -1184,7 +1242,6 @@ export const formRouter = router({
             status: "PUBLISHED",
             visibility,
             isAcceptingSubmissions: true,
-            submissionLimit: 100,
             publishedAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000),
           })
           .returning();

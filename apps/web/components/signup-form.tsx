@@ -1,8 +1,10 @@
 "use client"
 
+import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { cn } from "~/lib/utils"
 import { Button } from "~/components/ui/button"
+import { Alert, AlertDescription } from "~/components/ui/alert"
 import {
     Card,
     CardContent,
@@ -20,6 +22,7 @@ import { Input } from "~/components/ui/input"
 import { useSignup } from "~/hooks/api/auth"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { getSafeAuthErrorMessage } from "~/lib/auth-error"
 
 export type SignupFormValues = {
     fullName: string
@@ -37,8 +40,10 @@ export function SignupForm({
 
 
     // signup hook
-    const { createUserWithEmailAndPasswordAsync, error } = useSignup()
+    const { createUserWithEmailAndPasswordAsync, status } = useSignup()
     const router = useRouter()
+    const [authError, setAuthError] = useState<string | null>(null)
+    const isSubmitting = status === "pending"
 
     const { register, handleSubmit } = useForm<SignupFormValues>({
         defaultValues: {
@@ -49,24 +54,30 @@ export function SignupForm({
         },
     })
     async function handleSignupSubmit(values: SignupFormValues) {
-
+        setAuthError(null)
 
         // if values.password & values.confirmPassword are not same show an error
         if (values.password !== values.confirmPassword) {
-            alert("Passwords do not match")
+            setAuthError("Passwords do not match.")
             return
         }
-        const { id } = await createUserWithEmailAndPasswordAsync({
-            email: values.email,
-            fullName: values.fullName,
-            password: values.password
-        })
 
-        if (!id) {
-            alert(error)
-            return
+        try {
+            const { id } = await createUserWithEmailAndPasswordAsync({
+                email: values.email,
+                fullName: values.fullName,
+                password: values.password
+            })
+
+            if (!id) {
+                setAuthError("Unable to create your account right now.")
+                return
+            }
+
+            router.replace("/")
+        } catch (error) {
+            setAuthError(getSafeAuthErrorMessage(error, "Unable to create your account. Please check your details and try again."))
         }
-        router.replace("/")
 
 
     }
@@ -83,6 +94,11 @@ export function SignupForm({
                 <CardContent>
                     <form onSubmit={handleSubmit(handleSignupSubmit)} noValidate>
                         <FieldGroup>
+                            {authError && (
+                                <Alert variant="destructive">
+                                    <AlertDescription>{authError}</AlertDescription>
+                                </Alert>
+                            )}
                             <Field>
                                 <FieldLabel htmlFor="name">Full Name</FieldLabel>
                                 <Input
@@ -131,7 +147,9 @@ export function SignupForm({
                                 </FieldDescription>
                             </Field>
                             <Field>
-                                <Button type="submit">Create Account</Button>
+                                <Button type="submit" disabled={isSubmitting}>
+                                    {isSubmitting ? "Creating..." : "Create Account"}
+                                </Button>
                                 <FieldDescription className="text-center">
                                     Already have an account? <Link href="/signin">Sign in</Link>
 

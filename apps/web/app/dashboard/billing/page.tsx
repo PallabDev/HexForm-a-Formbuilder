@@ -11,7 +11,7 @@ import {
   IconActivity,
   IconSparkles,
 } from "@tabler/icons-react";
-import { toast } from "sonner";
+import toast from "react-hot-toast";
 import Link from "next/link";
 
 import { Button } from "~/components/ui/button";
@@ -62,7 +62,7 @@ export default function BillingPage() {
     setLoadingPlan(planCode);
     try {
       if (planCode === "free") {
-        toast.info("To downgrade to the Free Plan, please cancel your active subscription. You will revert to Free once the current period ends.");
+        toast("To downgrade to the Free Plan, please cancel your active subscription. You will revert to Free once the current period ends.");
         return;
       }
 

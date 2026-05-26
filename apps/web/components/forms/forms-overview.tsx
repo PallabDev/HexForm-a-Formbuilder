@@ -8,7 +8,7 @@ import {
   IconExternalLink,
   IconPlus,
 } from "@tabler/icons-react";
-import { toast } from "sonner";
+import toast from "react-hot-toast";
 
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -22,28 +22,12 @@ export function FormsOverview() {
   async function handleCreateForm() {
     try {
       const form = await createForm.mutateAsync({
-        title: "Creator onboarding feedback",
-        description: "Learn what creators need before they activate their workspace.",
+        title: "",
+        description: null,
         visibility: "UNLISTED",
-        submissionLimit: 100,
-        fields: [
-          {
-            label: "What is your primary goal with this workspace?",
-            type: "LONG_TEXT",
-            order: 0,
-            isRequired: true,
-            placeholder: "e.g. Collect beta feedback, qualify leads, run a community survey",
-          },
-          {
-            label: "How ready are you to launch?",
-            type: "RATING",
-            order: 1,
-            isRequired: true,
-            validation: { min: 1, max: 5 },
-          },
-        ],
+        fields: [],
       });
-      toast.success("Form created");
+      toast.success("Blank form created");
       window.location.href = `/dashboard/forms/${form.id}/builder`;
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not create form");
@@ -105,7 +89,7 @@ export function FormsOverview() {
             <article key={form.id} className="rounded-xl border border-border bg-card p-5 hover:border-zinc-700 transition-colors">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <h2 className="truncate text-base font-semibold">{form.title}</h2>
+                  <h2 className="truncate text-base font-semibold">{form.title || "Untitled form"}</h2>
                   <p className="mt-0.5 truncate text-xs text-muted-foreground">/{form.slug}</p>
                 </div>
                 <Badge variant={form.status === "PUBLISHED" ? "default" : "secondary"} className="text-[10px]">
@@ -117,9 +101,8 @@ export function FormsOverview() {
                 {form.description ?? "No description yet."}
               </p>
 
-              <div className="mt-4 grid grid-cols-3 gap-2">
+              <div className="mt-4 grid grid-cols-2 gap-2">
                 <Stat label="Responses" value={form.submissionCount.toString()} />
-                <Stat label="Limit" value={form.submissionLimit?.toString() ?? "∞"} />
                 <Stat label="View" value={form.visibility} />
               </div>
 

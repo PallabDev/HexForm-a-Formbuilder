@@ -12,7 +12,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { usersTable } from "./user";
 
-export const formStatusEnum = pgEnum("form_status", ["DRAFT", "PUBLISHED", "CLOSED", "ARCHIVED"]);
+export const formStatusEnum = pgEnum("form_status", ["DRAFT", "PUBLISHED", "ARCHIVED"]);
 
 export const formVisibilityEnum = pgEnum("form_visibility", ["PUBLIC", "UNLISTED"]);
 
@@ -49,7 +49,6 @@ export const formsTable = pgTable("forms", {
   visibility: formVisibilityEnum("visibility").notNull().default("UNLISTED"),
   slug: varchar("slug", { length: 140 }).notNull().unique(),
   isAcceptingSubmissions: boolean("is_accepting_submissions").notNull().default(false),
-  submissionLimit: integer("submission_limit"),
   submissionCount: integer("submission_count").notNull().default(0),
   publishedAt: timestamp("published_at"),
   createdAt: timestamp("created_at").defaultNow(),

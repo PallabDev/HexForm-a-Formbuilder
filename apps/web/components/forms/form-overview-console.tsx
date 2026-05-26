@@ -13,7 +13,7 @@ import {
     IconTools,
     IconChartBar,
 } from "@tabler/icons-react";
-import { toast } from "sonner";
+import toast from "react-hot-toast";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -72,24 +72,9 @@ export function FormOverviewConsole({ formId }: FormOverviewConsoleProps) {
         autoSaveTimeout.current = setTimeout(async () => {
             if (!formId) return;
             try {
-                const titleToSave = updatedFields.title !== undefined ? updatedFields.title : draftTitle;
-                
-                // Graceful empty title auto-save logic
-                if (titleToSave.trim().length === 0) {
-                    const payload: any = { id: formId };
-                    if (updatedFields.description !== undefined) payload.description = updatedFields.description;
-                    if (updatedFields.visibility !== undefined) payload.visibility = updatedFields.visibility;
-                    
-                    if (Object.keys(payload).length > 1) {
-                        await updateForm.mutateAsync(payload);
-                    }
-                    setSyncStatus("SYNCED");
-                    return;
-                }
-
                 await updateForm.mutateAsync({
                     id: formId,
-                    title: titleToSave,
+                    title: updatedFields.title !== undefined ? updatedFields.title : draftTitle,
                     description: updatedFields.description ?? draftDescription,
                     visibility: updatedFields.visibility ?? draftVisibility,
                 });
@@ -185,7 +170,7 @@ export function FormOverviewConsole({ formId }: FormOverviewConsoleProps) {
                     </Button>
 
                     <div>
-                        <h1 className="text-lg font-semibold tracking-tight">{form.title}</h1>
+                        <h1 className="text-lg font-semibold tracking-tight">{form.title || "Untitled form"}</h1>
                         <div className="flex items-center gap-2 mt-0.5">
                             {syncStatus === "SYNCING" ? (
                                 <span className="text-xs text-amber-400 flex items-center gap-1">
@@ -268,6 +253,7 @@ export function FormOverviewConsole({ formId }: FormOverviewConsoleProps) {
                                 <Input
                                     id="form-title"
                                     value={draftTitle}
+                                    placeholder="Name your form"
                                     onChange={(e) => {
                                         setDraftTitle(e.target.value);
                                         handleMetadataChange({ title: e.target.value });

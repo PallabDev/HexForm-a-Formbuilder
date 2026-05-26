@@ -15,7 +15,7 @@ import {
     IconCheck,
     IconStar,
 } from "@tabler/icons-react";
-import { toast } from "sonner";
+import toast from "react-hot-toast";
 import Link from "next/link";
 
 import { Badge } from "~/components/ui/badge";
@@ -269,7 +269,7 @@ export function PublicFormClient({ slug }: { slug: string }) {
 
             {/* Header */}
             <header className="flex items-center justify-between border-b border-border pb-3 max-w-4xl w-full mx-auto">
-                <span className="text-sm font-medium truncate">{form.title}</span>
+                <span className="text-sm font-medium truncate">{form.title || "Untitled form"}</span>
                 <Badge variant="outline" className="text-[10px]">
                     <IconLock className="size-3 mr-1" />
                     Secure
@@ -284,7 +284,7 @@ export function PublicFormClient({ slug }: { slug: string }) {
                     {currentStep === -1 && (
                         <div className="bg-card border border-border p-6 md:p-8 space-y-6 animate-in fade-in zoom-in-95 duration-200 rounded-xl">
                             <div className="space-y-3">
-                                <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{form.title}</h1>
+                                <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{form.title || "Untitled form"}</h1>
                                 {form.description && (
                                     <div
                                         className="text-sm text-muted-foreground leading-relaxed prose prose-invert max-w-none border border-border p-4 rounded-lg bg-background"

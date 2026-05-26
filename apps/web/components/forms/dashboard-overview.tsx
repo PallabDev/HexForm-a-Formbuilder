@@ -22,14 +22,18 @@ import {
     IconFileText,
     IconExternalLink,
 } from "@tabler/icons-react";
-import { toast } from "sonner";
+import toast from "react-hot-toast";
 
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
-import { useMyForms, useSeedMissions } from "~/hooks/api/forms";
+import { useDashboardActivity, useMyForms, useSeedMissions } from "~/hooks/api/forms";
 
 export function DashboardOverview() {
     const { forms, isLoading, error, refetch: refetchForms } = useMyForms({ limit: 50 });
+    const timezoneOffsetMinutes = useMemo(() => new Date().getTimezoneOffset(), []);
+    const { activity, isLoading: isActivityLoading, refetch: refetchActivity } = useDashboardActivity({
+        timezoneOffsetMinutes,
+    });
     const seedMissions = useSeedMissions();
     const [mounted, setMounted] = useState(false);
 
@@ -49,7 +53,7 @@ export function DashboardOverview() {
             const res = await seedMissions.mutateAsync(undefined);
             toast.dismiss(loadingToast);
             toast.success(`${res.count} templates & responses loaded!`);
-            await refetchForms();
+            await Promise.all([refetchForms(), refetchActivity()]);
         } catch (err) {
             toast.dismiss(loadingToast);
             toast.error("Failed to seed template data");
@@ -58,15 +62,11 @@ export function DashboardOverview() {
 
     const aggregatedChartData = useMemo(() => {
         const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-        if (totalResponses === 0) {
+        if (activity.length === 0) {
             return days.map((day) => ({ day, responses: 0 }));
         }
-        const weights = [0.1, 0.15, 0.22, 0.18, 0.25, 0.07, 0.03];
-        return days.map((day, idx) => ({
-            day,
-            responses: Math.round(totalResponses * weights[idx]!),
-        }));
-    }, [totalResponses]);
+        return activity;
+    }, [activity]);
 
     const displayForms = useMemo(() => activeForms.slice(0, 5), [activeForms]);
 
@@ -114,17 +114,16 @@ export function DashboardOverview() {
             </section>
 
             {/* Chart */}
-            {/* Chart */}
             <section className="bg-card border border-border rounded-xl p-5">
                 <div className="flex items-center justify-between mb-4">
                     <div>
                         <h2 className="text-sm font-medium">Response Activity</h2>
-                        <p className="text-xs text-muted-foreground mt-0.5">Weekly submission overview</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">Last 7 days from actual submissions</p>
                     </div>
                 </div>
 
-                <div className="h-[240px] w-full">
-                    {mounted ? (
+                <div className="h-60 w-full">
+                    {mounted && !isActivityLoading ? (
                         <ResponsiveContainer width="100%" height="100%">
                             <AreaChart
                                 data={aggregatedChartData}
@@ -217,7 +216,7 @@ export function DashboardOverview() {
                         displayForms.map((form) => (
                             <div key={form.id} className="flex items-center justify-between px-5 py-3.5 hover:bg-muted/50 transition-colors">
                                 <div className="min-w-0">
-                                    <p className="text-sm font-medium truncate">{form.title}</p>
+                                    <p className="text-sm font-medium truncate">{form.title || "Untitled form"}</p>
                                     <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
                                         <span>/{form.slug}</span>
                                         <span>·</span>
@@ -261,7 +260,7 @@ function StatCard({
     value: string
 }) {
     return (
-        <div className="bg-card border border-border rounded-xl p-5 flex flex-col justify-between min-h-[140px]">
+        <div className="bg-card border border-border rounded-xl p-5 flex flex-col justify-between min-h-35">
             <div className="flex items-start justify-between">
                 <div className={`size-10 rounded-lg flex items-center justify-center ${iconBg}`}>
                     {icon}

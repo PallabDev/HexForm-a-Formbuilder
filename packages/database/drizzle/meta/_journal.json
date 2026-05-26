@@ -15,6 +15,13 @@
       "when": 1779605491239,
       "tag": "0001_elite_starbolt",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1780012800000,
+      "tag": "0002_normalize_form_limits",
+      "breakpoints": true
     }
   ]
 }

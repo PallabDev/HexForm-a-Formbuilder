@@ -22,19 +22,16 @@ import { CSS } from "@dnd-kit/utilities";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import {
     IconPlus,
-    IconEye,
     IconTrash,
     IconArrowLeft,
-    IconSettings,
     IconCheck,
     IconLoader,
     IconAlertCircle,
     IconX,
     IconGripVertical,
-    IconDeviceFloppy,
     IconEdit,
 } from "@tabler/icons-react";
-import { toast } from "sonner";
+import toast from "react-hot-toast";
 
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -106,7 +103,6 @@ export function FormBuilderConsole({ formId }: FormBuilderConsoleProps) {
     const [draftTitle, setDraftTitle] = useState("");
     const [draftDescription, setDraftDescription] = useState("");
     const [draftVisibility, setDraftVisibility] = useState<"PUBLIC" | "UNLISTED">("UNLISTED");
-    const [draftLimit, setDraftLimit] = useState<number>(100);
     const [syncStatus, setSyncStatus] = useState<"SYNCED" | "SYNCING" | "ERROR">("SYNCED");
 
     // Popup Modal States for Field Editor
@@ -133,7 +129,6 @@ export function FormBuilderConsole({ formId }: FormBuilderConsoleProps) {
             setDraftTitle(form.title);
             setDraftDescription(form.description ?? "");
             setDraftVisibility(form.visibility);
-            setDraftLimit(form.submissionLimit ?? 100);
         }
     }, [form]);
 
@@ -156,7 +151,6 @@ export function FormBuilderConsole({ formId }: FormBuilderConsoleProps) {
         title?: string;
         description?: string;
         visibility?: "PUBLIC" | "UNLISTED";
-        submissionLimit?: number;
     }) => {
         setSyncStatus("SYNCING");
         if (autoSaveTimeout.current) clearTimeout(autoSaveTimeout.current);
@@ -164,28 +158,11 @@ export function FormBuilderConsole({ formId }: FormBuilderConsoleProps) {
         autoSaveTimeout.current = setTimeout(async () => {
             if (!formId) return;
             try {
-                const titleToSave = updatedFields.title !== undefined ? updatedFields.title : draftTitle;
-
-                // Graceful empty title auto-save logic
-                if (titleToSave.trim().length === 0) {
-                    const payload: any = { id: formId };
-                    if (updatedFields.description !== undefined) payload.description = updatedFields.description;
-                    if (updatedFields.visibility !== undefined) payload.visibility = updatedFields.visibility;
-                    if (updatedFields.submissionLimit !== undefined) payload.submissionLimit = updatedFields.submissionLimit;
-
-                    if (Object.keys(payload).length > 1) {
-                        await updateForm.mutateAsync(payload);
-                    }
-                    setSyncStatus("SYNCED");
-                    return;
-                }
-
                 await updateForm.mutateAsync({
                     id: formId,
-                    title: titleToSave,
+                    title: updatedFields.title !== undefined ? updatedFields.title : draftTitle,
                     description: updatedFields.description ?? draftDescription,
                     visibility: updatedFields.visibility ?? draftVisibility,
-                    submissionLimit: updatedFields.submissionLimit ?? draftLimit,
                 });
                 setSyncStatus("SYNCED");
             } catch (err) {
@@ -200,7 +177,7 @@ export function FormBuilderConsole({ formId }: FormBuilderConsoleProps) {
         try {
             if (status === "PUBLISHED") {
                 await publishForm.mutateAsync({ id: formId, visibility: draftVisibility });
-                toast.success("Form status updated to Public");
+                toast.success("Form status updated to Published");
             } else {
                 await unpublishForm.mutateAsync({ id: formId });
                 toast.success("Form status updated to Draft");
@@ -421,7 +398,7 @@ export function FormBuilderConsole({ formId }: FormBuilderConsoleProps) {
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="DRAFT" className="text-sm cursor-pointer">Draft</SelectItem>
-                            <SelectItem value="PUBLISHED" className="text-sm cursor-pointer">Public</SelectItem>
+                            <SelectItem value="PUBLISHED" className="text-sm cursor-pointer">Published</SelectItem>
                         </SelectContent>
                     </Select>
 
@@ -459,6 +436,7 @@ export function FormBuilderConsole({ formId }: FormBuilderConsoleProps) {
                                 <Input
                                     id="form-title"
                                     value={draftTitle}
+                                    placeholder="Name your form"
                                     onChange={(e) => {
                                         setDraftTitle(e.target.value);
                                         handleMetadataChange({ title: e.target.value });
@@ -476,21 +454,6 @@ export function FormBuilderConsole({ formId }: FormBuilderConsoleProps) {
                                         setDraftDescription(val);
                                         handleMetadataChange({ description: val });
                                     }}
-                                />
-                            </div>
-
-                            {/* Submission Limit */}
-                            <div className="space-y-2">
-                                <Label htmlFor="form-limit" className="text-xs text-muted-foreground">Submission Limit</Label>
-                                <Input
-                                    id="form-limit"
-                                    type="number"
-                                    value={draftLimit}
-                                    onChange={(e) => {
-                                        setDraftLimit(Number(e.target.value));
-                                        handleMetadataChange({ submissionLimit: Number(e.target.value) });
-                                    }}
-                                    className="text-sm"
                                 />
                             </div>
 

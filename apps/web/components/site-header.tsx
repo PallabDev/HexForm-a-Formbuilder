@@ -18,7 +18,7 @@ export function SiteHeader() {
     badgeStyles = "border-amber-500/30 bg-amber-500/10 text-amber-400 font-semibold shadow-[0_0_10px_rgba(245,158,11,0.1)]";
   } else if (planCode.includes("enterprise") || planCode.includes("unlimited") || planCode.includes("799")) {
     badgeText = "Unlimited";
-    badgeStyles = "border-cyan-500/30 bg-cyan-500/10 text-cyan-400 font-semibold shadow-[0_0_10px_rgba(6,182,212,0.1)]";
+    badgeStyles = "border-emerald-500/40 bg-emerald-500/10 text-emerald-400 font-semibold shadow-[0_0_10px_rgba(16,185,129,0.14)]";
   }
 
   return (

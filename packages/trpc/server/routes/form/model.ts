@@ -14,7 +14,7 @@ export const fieldTypeModel = z.enum([
 ]);
 
 export const formVisibilityModel = z.enum(["PUBLIC", "UNLISTED"]);
-export const formStatusModel = z.enum(["DRAFT", "PUBLISHED", "CLOSED", "ARCHIVED"]);
+export const formStatusModel = z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]);
 export const selectModeModel = z.enum(["SINGLE", "MULTIPLE"]);
 
 export const fieldValidationModel = z
@@ -53,23 +53,21 @@ export const fieldInputModel = z.object({
 });
 
 export const createFormInputModel = z.object({
-  title: z.string().min(1).max(120),
+  title: z.string().max(120),
   description: z.string().max(4000).optional().nullable(),
   posterUrl: z.url().optional().nullable(),
   slug: z.string().min(3).max(140).optional(),
   visibility: formVisibilityModel.optional(),
-  submissionLimit: z.number().int().positive().optional().nullable(),
   fields: z.array(fieldInputModel).optional(),
 });
 
 export const updateFormInputModel = z.object({
   id: z.uuid(),
-  title: z.string().min(1).max(120).optional(),
+  title: z.string().max(120).optional(),
   description: z.string().max(4000).optional().nullable(),
   posterUrl: z.url().optional().nullable(),
   slug: z.string().min(3).max(140).optional(),
   visibility: formVisibilityModel.optional(),
-  submissionLimit: z.number().int().positive().optional().nullable(),
 });
 
 export const formIdInputModel = z.object({
@@ -177,7 +175,6 @@ export const formOutputModel = z.object({
   visibility: formVisibilityModel,
   slug: z.string(),
   isAcceptingSubmissions: z.boolean(),
-  submissionLimit: z.number().nullable(),
   submissionCount: z.number(),
   publishedAt: z.string().nullable(),
   createdAt: z.string().nullable(),
@@ -229,3 +226,17 @@ export const analyticsOutputModel = z.object({
     }),
   ),
 });
+
+export const dashboardActivityInputModel = z
+  .object({
+    timezoneOffsetMinutes: z.number().int().min(-840).max(840).optional(),
+  })
+  .optional();
+
+export const dashboardActivityOutputModel = z.array(
+  z.object({
+    date: z.string(),
+    day: z.string(),
+    responses: z.number(),
+  }),
+);

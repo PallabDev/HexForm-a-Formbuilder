@@ -20,7 +20,7 @@ import {
     IconChartBar,
     IconDatabase,
 } from "@tabler/icons-react";
-import { toast } from "sonner";
+import toast from "react-hot-toast";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import {
@@ -135,7 +135,7 @@ export function FormAnalyticsConsole({ formId }: FormAnalyticsConsoleProps) {
                     </Button>
                     <div>
                         <h1 className="text-lg font-semibold tracking-tight truncate max-w-[300px]">
-                            {form.title}
+                            {form.title || "Untitled form"}
                         </h1>
                         <p className="text-xs text-muted-foreground">Analytics & Responses</p>
                     </div>

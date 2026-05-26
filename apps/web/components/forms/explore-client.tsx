@@ -107,7 +107,7 @@ export function ExploreClient() {
 
                   <div>
                     <h2 className="line-clamp-1 text-base font-semibold tracking-tight">
-                      {form.title}
+                      {form.title || "Untitled form"}
                     </h2>
                     <p className="mt-1 line-clamp-3 text-sm leading-6 text-muted-foreground">
                       {stripHtml(form.description ?? "Active survey form ready for responses.")}
