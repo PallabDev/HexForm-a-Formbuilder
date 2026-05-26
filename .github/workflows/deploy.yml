@@ -52,9 +52,25 @@ jobs:
           port: 22
 
           script: |
-            # Source profile to align interactive/non-interactive environments
+            # Explicitly load NVM to ensure we use the same Node/PM2 as the interactive shell
+            export NVM_DIR="$HOME/.nvm"
+            if [ -s "$NVM_DIR/nvm.sh" ]; then
+              source "$NVM_DIR/nvm.sh"
+            fi
+
+            # Source profile as backup
             source ~/.bashrc || source ~/.profile || true
-            
+
+            # Print debug info to verify paths and environment
+            echo "=== Node/PM2 Environment Info ==="
+            echo "Current Path: $PATH"
+            echo "Node Path: $(which node || echo 'Not Found')"
+            echo "Node Version: $(node -v || echo 'Not Found')"
+            echo "PM2 Path: $(which pm2 || echo 'Not Found')"
+            echo "PM2 Version: $(pm2 -v || echo 'Not Found')"
+            echo "PM2 Home: $PM2_HOME"
+            echo "================================="
+
             cd /root/projects/HexForm-a-Formbuilder
 
             git pull origin main || git pull origin master
