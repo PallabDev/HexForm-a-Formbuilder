@@ -20,7 +20,7 @@ export function AccountConsole() {
   if (isLoading) {
     return (
       <main className="hex-grid-bg flex min-h-[calc(100dvh-6rem)] items-center justify-center p-4">
-        <IconLoader className="size-8 animate-spin text-emerald-400" />
+        <IconLoader className="size-8 animate-spin text-rose-500" />
       </main>
     );
   }
@@ -67,7 +67,6 @@ export function AccountConsole() {
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
-            <Info label="User ID" value={user.id} />
             <Info
               label="Profile image"
               value={user.profileImageUrl ? "Configured" : "Not set"}
@@ -77,7 +76,7 @@ export function AccountConsole() {
 
         <div className="flex flex-col justify-between gap-6 rounded-lg border border-zinc-800 bg-zinc-900/60 p-6">
           <div className="space-y-3">
-            <IconShieldCheck className="size-7 text-emerald-400" stroke={1.5} />
+            <IconShieldCheck className="size-7 text-rose-500" stroke={1.5} />
             <h2 className="text-sm font-semibold text-white">Protected access</h2>
             <p className="text-sm leading-relaxed text-zinc-400">
               Dashboard, builders, and analytics run under authenticated procedures tied to your
@@ -85,7 +84,7 @@ export function AccountConsole() {
             </p>
           </div>
           <div className="flex items-center gap-2 rounded-md border border-zinc-800 bg-zinc-950/80 p-3 text-sm">
-            <IconMail className="size-4 shrink-0 text-emerald-400" />
+            <IconMail className="size-4 shrink-0 text-rose-500" />
             <span className="truncate text-zinc-200">{user.email}</span>
           </div>
           <Button asChild variant="outline" className="rounded-md border-zinc-700 bg-transparent">

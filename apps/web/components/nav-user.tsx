@@ -86,7 +86,7 @@ export function NavUser({
                         <DropdownMenuSeparator />
                         <DropdownMenuGroup>
                             <DropdownMenuItem asChild>
-                                <Link href="/dashboard/billing" className="flex items-center w-full">
+                                <Link href="/dashboard/account" className="flex items-center w-full">
                                     <IconUserCircle className="mr-2 size-4" />
                                     <span>Account</span>
                                 </Link>
