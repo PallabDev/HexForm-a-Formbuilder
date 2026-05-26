@@ -10,6 +10,7 @@ import {
   IconLayoutDashboard,
   IconCreditCard,
   IconUserCircle,
+  IconLogout,
 } from "@tabler/icons-react";
 
 import { Button } from "~/components/ui/button";
@@ -151,34 +152,29 @@ export function MainNavbar() {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href="/dashboard/forms" className="cursor-pointer">
-                    <IconForms className="mr-2 size-4" />
-                    Forms
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/dashboard/billing" className="cursor-pointer">
-                    <IconCreditCard className="mr-2 size-4" />
-                    Billing
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
                   <Link href="/dashboard/account" className="cursor-pointer">
                     <IconUserCircle className="mr-2 size-4" />
                     Account
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator className="bg-zinc-800" />
-                <DropdownMenuItem asChild>
-                  <Link href={startHref} className="cursor-pointer font-medium text-rose-300">
-                    Create Form
-                  </Link>
+                <DropdownMenuItem
+                  onClick={() => {
+                    if (typeof window !== "undefined") {
+                      document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+                      window.location.href = "/signin";
+                    }
+                  }}
+                  className="cursor-pointer text-rose-400 hover:text-rose-500 focus:text-rose-500"
+                >
+                  <IconLogout className="mr-2 size-4" />
+                  Log out
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : null}
 
-          {!isLoading ? (
+          {!isLoading && !isLoggedIn ? (
             <Button size="sm" asChild className="cta-primary hidden font-semibold sm:inline-flex">
               <Link href={startHref}>{startLabel}</Link>
             </Button>
@@ -202,7 +198,7 @@ export function MainNavbar() {
                   HexForm
                 </SheetTitle>
               </SheetHeader>
-              <div className="mt-8 flex flex-col gap-6">
+              <div className="flex-1 overflow-y-auto px-5 pb-8 flex flex-col gap-6 mt-4">
                 <NavLinks onNavigate={() => setSheetOpen(false)} />
                 <div className="flex flex-col gap-2 border-t border-zinc-800 pt-6">
                   <Button variant="outline" asChild className="border-zinc-700">
@@ -210,22 +206,40 @@ export function MainNavbar() {
                       Explore
                     </Link>
                   </Button>
-                  <Button asChild className="cta-primary font-semibold">
-                    <Link href={startHref} onClick={() => setSheetOpen(false)}>
-                      {startLabel}
-                    </Link>
-                  </Button>
+                  {!isLoggedIn && (
+                    <Button asChild className="cta-primary font-semibold">
+                      <Link href={startHref} onClick={() => setSheetOpen(false)}>
+                        {startLabel}
+                      </Link>
+                    </Button>
+                  )}
                   {isLoggedIn ? (
                     <>
                       <Button variant="ghost" asChild className="justify-start text-zinc-300">
                         <Link href="/dashboard" onClick={() => setSheetOpen(false)}>
+                          <IconLayoutDashboard className="mr-2 size-4 text-rose-500" />
                           Dashboard
                         </Link>
                       </Button>
                       <Button variant="ghost" asChild className="justify-start text-zinc-300">
                         <Link href="/dashboard/account" onClick={() => setSheetOpen(false)}>
+                          <IconUserCircle className="mr-2 size-4 text-rose-500" />
                           Account
                         </Link>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        onClick={() => {
+                          setSheetOpen(false);
+                          if (typeof window !== "undefined") {
+                            document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+                            window.location.href = "/signin";
+                          }
+                        }}
+                        className="justify-start text-rose-400 hover:text-rose-500 hover:bg-rose-500/10 cursor-pointer"
+                      >
+                        <IconLogout className="mr-2 size-4" />
+                        Log out
                       </Button>
                     </>
                   ) : null}

@@ -37,14 +37,27 @@ function WorkflowGlowTrack() {
       {/* Moving glow — travels step 1 → step 4 */}
       <motion.div
         className="absolute top-0 h-0.5 w-[18%] -translate-y-1/2 rounded-full bg-gradient-to-r from-rose-500/20 via-rose-400 to-amber-400 shadow-[0_0_20px_rgba(251,113,133,0.55)]"
-        initial={{ left: "0%" }}
-        animate={{ left: "82%" }}
+        initial={{ left: "0%", opacity: 0 }}
+        animate={{
+          left: ["0%", "82%"],
+          opacity: [0, 1, 1, 0],
+        }}
         transition={{
-          duration: 3.2,
-          repeat: Infinity,
-          repeatType: "loop",
-          repeatDelay: 1.5,
-          ease: [0.45, 0, 0.55, 1],
+          left: {
+            duration: 3.2,
+            repeat: Infinity,
+            repeatType: "loop",
+            repeatDelay: 1.5,
+            ease: [0.45, 0, 0.55, 1],
+          },
+          opacity: {
+            duration: 3.2,
+            repeat: Infinity,
+            repeatType: "loop",
+            repeatDelay: 1.5,
+            times: [0, 0.15, 0.85, 1],
+            ease: "easeInOut",
+          },
         }}
       />
     </div>
