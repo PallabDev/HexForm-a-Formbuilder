@@ -8,7 +8,6 @@ import {
   IconForms,
   IconMenu2,
   IconLayoutDashboard,
-  IconCreditCard,
   IconUserCircle,
   IconLogout,
 } from "@tabler/icons-react";

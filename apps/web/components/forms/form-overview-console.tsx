@@ -7,11 +7,9 @@ import {
     IconLoader,
     IconCheck,
     IconAlertCircle,
-    IconCopy,
     IconEye,
     IconSettings,
     IconTools,
-    IconChartBar,
     IconShare3,
 } from "@tabler/icons-react";
 import toast from "react-hot-toast";
