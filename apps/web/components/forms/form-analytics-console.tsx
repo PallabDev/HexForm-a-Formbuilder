@@ -124,7 +124,7 @@ export function FormAnalyticsConsole({ formId }: FormAnalyticsConsoleProps) {
     }
 
     return (
-        <main className="space-y-6 p-6 w-full max-w-7xl mx-auto animate-in fade-in duration-300">
+        <main className="space-y-6 p-6 w-full max-w-7xl mx-auto min-w-0 animate-in fade-in duration-300">
             {/* Header */}
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
@@ -192,7 +192,7 @@ export function FormAnalyticsConsole({ formId }: FormAnalyticsConsoleProps) {
                         </Button>
                     </div>
 
-                    <div className="overflow-auto rounded-lg border border-border bg-background max-h-[260px]">
+                    <div className="overflow-x-auto overflow-y-auto w-full max-w-full rounded-lg border border-border bg-background max-h-[260px]">
                         {responses.length === 0 ? (
                             <div className="text-center py-16 text-sm text-muted-foreground">
                                 No responses yet.
@@ -203,7 +203,7 @@ export function FormAnalyticsConsole({ formId }: FormAnalyticsConsoleProps) {
                                     <tr className="border-b border-border bg-muted/30 text-left">
                                         <th className="p-3 text-xs font-medium text-muted-foreground w-12 border-r border-border">#</th>
                                         {form.fields.map((field) => (
-                                            <th key={field.id} className="p-3 text-xs font-medium text-muted-foreground border-r border-border">
+                                            <th key={field.id} className="p-3 text-xs font-medium text-muted-foreground border-r border-border max-w-[180px] truncate" title={field.label}>
                                                 {field.label}
                                             </th>
                                         ))}

@@ -35,12 +35,8 @@ export function SiteHeader() {
               {badgeText} Plan
             </Badge>
           )}
-          <Button variant="outline" asChild size="sm" className="hidden border-accent/40 sm:flex">
-            <a href="/explore">Explore</a>
-          </Button>
         </div>
       </div>
     </header>
   );
 }
-

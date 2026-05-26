@@ -213,36 +213,6 @@ export function MainNavbar() {
                       </Link>
                     </Button>
                   )}
-                  {isLoggedIn ? (
-                    <>
-                      <Button variant="ghost" asChild className="justify-start text-zinc-300">
-                        <Link href="/dashboard" onClick={() => setSheetOpen(false)}>
-                          <IconLayoutDashboard className="mr-2 size-4 text-rose-500" />
-                          Dashboard
-                        </Link>
-                      </Button>
-                      <Button variant="ghost" asChild className="justify-start text-zinc-300">
-                        <Link href="/dashboard/account" onClick={() => setSheetOpen(false)}>
-                          <IconUserCircle className="mr-2 size-4 text-rose-500" />
-                          Account
-                        </Link>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        onClick={() => {
-                          setSheetOpen(false);
-                          if (typeof window !== "undefined") {
-                            document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-                            window.location.href = "/signin";
-                          }
-                        }}
-                        className="justify-start text-rose-400 hover:text-rose-500 hover:bg-rose-500/10 cursor-pointer"
-                      >
-                        <IconLogout className="mr-2 size-4" />
-                        Log out
-                      </Button>
-                    </>
-                  ) : null}
                 </div>
               </div>
             </SheetContent>
