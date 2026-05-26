@@ -36,50 +36,116 @@ jobs:
       - name: Build
         run: pnpm build
 
-  deploy:
-    name: Deploy to Remote VPS
-    needs: test-and-typecheck
-    runs-on: ubuntu-latest
+deploy:
+  name: Deploy to Remote VPS
+  needs: test-and-typecheck
+  runs-on: ubuntu-latest
 
-    steps:
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.0.3
+  steps:
+    - name: Deploy via SSH
+      uses: appleboy/ssh-action@v1.0.3
 
-        with:
-          host: 88.150.138.98
-          username: root
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: 22
+      with:
+        host: 88.150.138.98
+        username: root
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: 22
 
-          script: |
-            # Explicitly load NVM to ensure we use the same Node/PM2 as the interactive shell
-            export NVM_DIR="$HOME/.nvm"
-            if [ -s "$NVM_DIR/nvm.sh" ]; then
-              source "$NVM_DIR/nvm.sh"
-            fi
+        script: |
+          export NVM_DIR="$HOME/.nvm"
 
-            # Source profile as backup
-            source ~/.bashrc || source ~/.profile || true
+          if [ -s "$NVM_DIR/nvm.sh" ]; then
+            source "$NVM_DIR/nvm.sh"
+          fi
 
-            # Print debug info to verify paths and environment
-            echo "=== Node/PM2 Environment Info ==="
-            echo "Current Path: $PATH"
-            echo "Node Path: $(which node || echo 'Not Found')"
-            echo "Node Version: $(node -v || echo 'Not Found')"
-            echo "PM2 Path: $(which pm2 || echo 'Not Found')"
-            echo "PM2 Version: $(pm2 -v || echo 'Not Found')"
-            echo "PM2 Home: $PM2_HOME"
-            echo "================================="
+          source ~/.bashrc || true
+          source ~/.profile || true
 
-            cd /root/projects/HexForm-a-Formbuilder
+          echo "================================="
+          echo "NODE INFO"
+          echo "================================="
 
-            git pull origin main || git pull origin master
+          which node
+          node -v
 
-            pnpm install --frozen-lockfile
+          echo "================================="
+          echo "PNPM INFO"
+          echo "================================="
 
-            pnpm build
+          which pnpm
+          pnpm -v
 
-            pm2 delete hexform-backend hexform-frontend || true
-            pm2 start ecosystem.config.js
+          echo "================================="
+          echo "PM2 INFO"
+          echo "================================="
 
-            pm2 save
+          which pm2
+          pm2 -v
+
+          echo "================================="
+          echo "PROJECT FILES"
+          echo "================================="
+
+          cd /root/projects/HexForm-a-Formbuilder
+
+          pwd
+
+          ls -la
+
+          echo "================================="
+          echo "INSTALLING"
+          echo "================================="
+
+          pnpm install --frozen-lockfile
+
+          echo "================================="
+          echo "BUILDING"
+          echo "================================="
+
+          NODE_OPTIONS="--max-old-space-size=4096" pnpm build
+
+          echo "================================="
+          echo "PM2 ECOSYSTEM FILE"
+          echo "================================="
+
+          cat ecosystem.config.js
+
+          echo "================================="
+          echo "STARTING PM2"
+          echo "================================="
+
+          pm2 start ecosystem.config.js --update-env
+
+          echo "================================="
+          echo "PM2 LIST"
+          echo "================================="
+
+          pm2 list
+
+          echo "================================="
+          echo "PM2 DESCRIBE FRONTEND"
+          echo "================================="
+
+          pm2 describe frontend || true
+
+          echo "================================="
+          echo "PM2 DESCRIBE BACKEND"
+          echo "================================="
+
+          pm2 describe backend || true
+
+          echo "================================="
+          echo "PM2 LOGS"
+          echo "================================="
+
+          pm2 logs --lines 50 --nostream || true
+
+          echo "================================="
+          echo "SAVING PM2"
+          echo "================================="
+
+          pm2 save
+
+          echo "================================="
+          echo "DEPLOY DONE"
+          echo "================================="
