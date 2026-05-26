@@ -5,6 +5,7 @@ import { IconCheck } from "@tabler/icons-react";
 
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
+import { LandingSectionHeader } from "~/components/landing/landing-section-header";
 import { useUser } from "~/hooks/api/auth";
 import { trpc } from "~/trpc/client";
 import {
@@ -28,16 +29,12 @@ export function PricingSection() {
 
   return (
     <section id="pricing" className="landing-section mx-auto max-w-6xl px-4 py-20 md:py-28">
-      <SectionReveal className="text-center">
-        <p className="text-xs font-semibold uppercase tracking-widest text-emerald-400">
-          Pricing
-        </p>
-        <h2 className="mt-3 text-3xl font-bold tracking-tight text-white md:text-4xl">
-          Plans that scale with your forms
-        </h2>
-        <p className="mx-auto mt-4 max-w-xl text-sm text-zinc-400">
-          Start free, upgrade when you need more active sheets and responses per form.
-        </p>
+      <SectionReveal>
+        <LandingSectionHeader
+          label="Pricing"
+          title="Plans that scale with your forms"
+          description="Start free, upgrade when you need more active sheets and responses per form."
+        />
       </SectionReveal>
 
       <div className="mt-12 grid gap-6 md:grid-cols-3">
@@ -62,20 +59,20 @@ export function PricingSection() {
                 )}
               >
                 {isRecommended ? (
-                  <Badge className="absolute top-4 right-4 rounded-md border-rose-500/30 bg-rose-500/15 text-[10px] font-semibold uppercase text-rose-300">
+                  <Badge className="absolute top-4 right-4 rounded-md border-amber-500/30 bg-gradient-to-r from-rose-500/20 to-amber-500/15 text-[10px] font-semibold uppercase text-amber-200">
                     Recommended
                   </Badge>
                 ) : null}
                 {isCurrent ? (
                   <Badge className="absolute top-4 right-4 rounded-md bg-white text-[10px] font-semibold uppercase text-zinc-950">
-                    Active Plan
+                    Active plan
                   </Badge>
                 ) : null}
 
                 <div className="space-y-5">
                   <div>
-                    <h3 className="text-lg font-bold text-white">{plan.name}</h3>
-                    <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+                    <h3 className="text-xl font-bold text-white">{plan.name}</h3>
+                    <p className="mt-2 text-sm leading-relaxed text-zinc-400 md:text-[0.9375rem]">
                       {plan.description}
                     </p>
                   </div>
@@ -131,7 +128,7 @@ export function PricingSection() {
         })}
       </div>
 
-      <p className="mt-8 text-center text-xs text-zinc-500">
+      <p className="mt-8 text-center text-sm text-zinc-500">
         Upgrade anytime from billing. Cancel or change plans from your dashboard.
       </p>
     </section>

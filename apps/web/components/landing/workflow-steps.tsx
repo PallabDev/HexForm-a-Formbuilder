@@ -1,6 +1,8 @@
 "use client";
 
 import { motion } from "motion/react";
+
+import { LandingSectionHeader } from "~/components/landing/landing-section-header";
 import { SectionReveal } from "~/components/landing/section-reveal";
 
 const STEPS = [
@@ -22,76 +24,85 @@ const STEPS = [
   },
 ];
 
-function AnimatedCheck({ delay }: { delay: number }) {
+function WorkflowGlowTrack() {
   return (
-    <motion.svg
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      className="text-emerald-400"
-      initial={{ opacity: 0 }}
-      whileInView={{ opacity: 1 }}
-      viewport={{ once: true }}
-      transition={{ delay }}
+    <div
+      className="pointer-events-none absolute left-[6%] right-[6%] top-6 hidden md:block"
+      aria-hidden
     >
-      <motion.circle
-        cx="12"
-        cy="12"
-        r="10"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        fill="rgba(16,185,129,0.1)"
-        initial={{ pathLength: 0 }}
-        whileInView={{ pathLength: 1 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.4, delay }}
+      {/* Base track */}
+      <div className="absolute inset-x-0 top-0 h-px bg-zinc-800" />
+
+      {/* Moving glow — travels step 1 → step 4 */}
+      <motion.div
+        className="absolute top-0 h-0.5 w-[18%] -translate-y-1/2 rounded-full bg-gradient-to-r from-rose-500/20 via-rose-400 to-amber-400 shadow-[0_0_20px_rgba(251,113,133,0.55)]"
+        initial={{ left: "0%" }}
+        animate={{ left: "82%" }}
+        transition={{
+          duration: 3.2,
+          repeat: Infinity,
+          repeatType: "reverse",
+          ease: [0.45, 0, 0.55, 1],
+        }}
       />
-      <motion.path
-        d="M8 12.5l2.5 2.5L16 9"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+    </div>
+  );
+}
+
+function StepIcon({ delay }: { delay: number }) {
+  return (
+    <motion.div
+      initial={{ scale: 0.9, opacity: 0 }}
+      whileInView={{ scale: 1, opacity: 1 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.4, delay }}
+      className="relative z-10 flex size-12 items-center justify-center rounded-md border border-zinc-800 bg-zinc-900 shadow-[0_0_0_1px_rgba(255,255,255,0.04)]"
+    >
+      <motion.svg
+        width="22"
+        height="22"
+        viewBox="0 0 24 24"
         fill="none"
-        initial={{ pathLength: 0 }}
-        whileInView={{ pathLength: 1 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.35, delay: delay + 0.2 }}
-      />
-    </motion.svg>
+        className="text-emerald-400"
+      >
+        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" fill="rgba(16,185,129,0.12)" />
+        <path
+          d="M8 12.5l2.5 2.5L16 9"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </motion.svg>
+    </motion.div>
   );
 }
 
 export function WorkflowSteps() {
   return (
     <section id="workflow" className="landing-section mx-auto max-w-6xl px-4 py-20 md:py-28">
-      <SectionReveal className="text-center">
-        <p className="text-xs font-semibold uppercase tracking-widest text-emerald-400">
-          Workflow
-        </p>
-        <h2 className="mt-3 text-3xl font-bold tracking-tight text-white md:text-4xl">
-          From blank page to response insight
-        </h2>
+      <SectionReveal>
+        <LandingSectionHeader
+          label="Workflow"
+          title="From blank page to response insight"
+        />
       </SectionReveal>
 
-      <div className="relative mt-14">
-        <div
-          className="absolute left-0 right-0 top-6 hidden h-px bg-gradient-to-r from-transparent via-zinc-700 to-transparent md:block"
-          aria-hidden
-        />
-        <ol className="grid gap-8 md:grid-cols-4">
+      <div className="relative mt-14 md:mt-16">
+        <WorkflowGlowTrack />
+
+        <ol className="grid gap-10 md:grid-cols-4 md:gap-6">
           {STEPS.map((step, i) => (
-            <SectionReveal key={step.title} delay={i * 0.1}>
+            <SectionReveal key={step.title} delay={i * 0.08}>
               <li className="relative flex flex-col items-center text-center md:items-start md:text-left">
-                <div className="relative z-10 mb-4 flex size-12 items-center justify-center rounded-md border border-zinc-800 bg-zinc-900">
-                  <AnimatedCheck delay={0.1 + i * 0.15} />
-                </div>
-                <span className="mb-1 text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+                <StepIcon delay={0.08 + i * 0.1} />
+                <span className="mb-1.5 mt-4 text-[11px] font-bold uppercase tracking-widest text-zinc-500">
                   Step {i + 1}
                 </span>
-                <h3 className="text-base font-semibold text-white">{step.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-zinc-400">{step.description}</p>
+                <h3 className="text-lg font-semibold text-white">{step.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-zinc-400 md:text-[0.9375rem]">
+                  {step.description}
+                </p>
               </li>
             </SectionReveal>
           ))}

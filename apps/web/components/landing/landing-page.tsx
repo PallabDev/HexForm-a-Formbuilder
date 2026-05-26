@@ -24,6 +24,7 @@ import {
   IconFlask,
   IconChalkboard,
   IconUserPlus,
+  IconRocket,
 } from "@tabler/icons-react";
 
 import { MainNavbar } from "~/components/main-navbar";
@@ -39,6 +40,7 @@ import { ProductPreview } from "~/components/landing/product-preview";
 import { PricingSection } from "~/components/landing/pricing-section";
 import { WorkflowSteps } from "~/components/landing/workflow-steps";
 import { LandingFooter } from "~/components/landing/landing-footer";
+import { LandingSectionHeader } from "~/components/landing/landing-section-header";
 import { SectionReveal } from "~/components/landing/section-reveal";
 import { useUser } from "~/hooks/api/auth";
 import { getSignInHref } from "~/lib/landing-plans";
@@ -118,12 +120,19 @@ const BENTO_ITEMS = [
     className: "md:col-span-1",
   },
   {
+    title: "Publish when ready",
+    description: "Keep forms in draft until you are ready to collect responses.",
+    icon: IconRocket,
+    className: "md:col-span-1",
+    compact: true,
+  },
+  {
     title: "Billing limits that scale",
     description: "Active sheet and per-form response limits grow with your plan.",
     icon: IconCreditCard,
     className: "md:col-span-2",
   },
-];
+] as const;
 
 const USE_CASES = [
   {
@@ -256,7 +265,7 @@ export function LandingPage() {
           >
             <Badge
               variant="outline"
-              className="rounded-md border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-emerald-400"
+              className="rounded-md border-rose-500/40 bg-gradient-to-r from-rose-500/20 via-amber-500/15 to-rose-500/10 px-3.5 py-1 text-[10px] font-semibold uppercase tracking-widest text-amber-100 shadow-[0_0_24px_rgba(251,113,133,0.15)]"
             >
               Forms &amp; surveys
             </Badge>
@@ -264,17 +273,19 @@ export function LandingPage() {
           <motion.h1
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.7, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-            className="mx-auto mt-4 max-w-2xl text-xl font-semibold leading-snug tracking-tight text-white sm:text-2xl md:text-[1.625rem]"
+            transition={{ duration: 0.75, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+            className="mx-auto mt-5 max-w-3xl text-2xl font-bold leading-[1.25] tracking-tight sm:text-3xl md:text-4xl md:leading-[1.2]"
           >
-            <span className="block">Create forms and surveys</span>
-            <span className="mt-1 block text-zinc-400">from a blank slate—not a template library.</span>
+            <span className="block text-white">Create forms and surveys</span>
+            <span className="mt-2 block text-zinc-400">
+              from a blank slate—not a template library.
+            </span>
           </motion.h1>
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.65, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            className="mx-auto mt-4 max-w-lg text-sm leading-relaxed text-zinc-500"
+            transition={{ duration: 0.65, delay: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-zinc-500"
           >
             HexForm helps teams publish surveys, enforce validation, and review responses in one
             place.
@@ -309,17 +320,13 @@ export function LandingPage() {
 
       {/* Product problem */}
       <section id="product" className="landing-section mx-auto max-w-6xl px-4 py-20 md:py-28">
-        <SectionReveal className="max-w-2xl">
-          <p className="text-xs font-semibold uppercase tracking-widest text-rose-400/90">
-            The problem
-          </p>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight text-white md:text-4xl">
-            Forms should not become another workflow mess.
-          </h2>
-          <p className="mt-4 text-sm leading-relaxed text-zinc-400 md:text-base">
-            HexForm helps you move from “I need a form” to “I understand the responses” with less
-            friction—without template sprawl or scattered tools.
-          </p>
+        <SectionReveal>
+          <LandingSectionHeader
+            align="left"
+            label="The problem"
+            title="Forms should not become another workflow mess."
+            description="HexForm helps you move from “I need a form” to “I understand the responses” with less friction—without template sprawl or scattered tools."
+          />
         </SectionReveal>
 
         <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -327,7 +334,7 @@ export function LandingPage() {
             <SectionReveal key={item.title} delay={i * 0.06}>
               <article className="h-full rounded-md border border-zinc-800 bg-zinc-900/40 p-5 transition-colors hover:border-zinc-700">
                 <item.icon className="size-6 text-emerald-400" stroke={1.5} />
-                <h3 className="mt-4 text-sm font-semibold text-white">{item.title}</h3>
+                <h3 className="mt-4 text-base font-semibold text-white">{item.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-zinc-400">{item.description}</p>
               </article>
             </SectionReveal>
@@ -337,31 +344,57 @@ export function LandingPage() {
 
       {/* Bento features */}
       <section id="features" className="landing-section mx-auto max-w-6xl px-4 py-20 md:py-28">
-        <SectionReveal className="text-center">
-          <p className="text-xs font-semibold uppercase tracking-widest text-emerald-400">
-            Features
-          </p>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight text-white md:text-4xl">
-            Everything needed to launch forms that behave.
-          </h2>
+        <SectionReveal>
+          <LandingSectionHeader
+            label="Features"
+            title="Everything needed to launch forms that behave."
+          />
         </SectionReveal>
 
-        <div className="mt-12 grid auto-rows-[minmax(140px,auto)] gap-4 md:grid-cols-3">
-          {BENTO_ITEMS.map((item, i) => (
-            <SectionReveal key={item.title} delay={i * 0.04} className={item.className}>
-              <motion.article
-                whileHover={{ y: -4 }}
-                transition={{ duration: 0.2 }}
-                className="flex h-full flex-col justify-between rounded-lg border border-zinc-800 bg-zinc-900/50 p-5 hover:border-zinc-700 hover:shadow-lg hover:shadow-black/20"
-              >
-                <item.icon className="size-6 text-rose-400/90" stroke={1.5} />
-                <div className="mt-4">
-                  <h3 className="text-base font-semibold text-white">{item.title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-zinc-400">{item.description}</p>
-                </div>
-              </motion.article>
-            </SectionReveal>
-          ))}
+        <div className="mt-12 grid auto-rows-[minmax(128px,auto)] gap-4 md:grid-cols-3">
+          {BENTO_ITEMS.map((item, i) => {
+            const isCompact = "compact" in item && item.compact;
+            const iconWarm = i % 3 === 0;
+            return (
+              <SectionReveal key={item.title} delay={i * 0.04} className={item.className}>
+                <motion.article
+                  whileHover={{ y: -3 }}
+                  transition={{ duration: 0.2 }}
+                  className={cn(
+                    "flex h-full flex-col justify-between rounded-lg border border-zinc-800 bg-zinc-900/50 hover:border-zinc-700 hover:shadow-lg hover:shadow-black/20",
+                    isCompact ? "min-h-[128px] p-4" : "min-h-[140px] p-5",
+                  )}
+                >
+                  <item.icon
+                    className={cn(
+                      "shrink-0",
+                      isCompact ? "size-5" : "size-6",
+                      iconWarm ? "text-amber-400/90" : "text-rose-400/90",
+                    )}
+                    stroke={1.5}
+                  />
+                  <div className={isCompact ? "mt-3" : "mt-4"}>
+                    <h3
+                      className={cn(
+                        "font-semibold text-white",
+                        isCompact ? "text-sm" : "text-base",
+                      )}
+                    >
+                      {item.title}
+                    </h3>
+                    <p
+                      className={cn(
+                        "mt-1.5 leading-relaxed text-zinc-400",
+                        isCompact ? "text-xs" : "text-sm",
+                      )}
+                    >
+                      {item.description}
+                    </p>
+                  </div>
+                </motion.article>
+              </SectionReveal>
+            );
+          })}
         </div>
       </section>
 
@@ -369,22 +402,20 @@ export function LandingPage() {
 
       {/* Use cases */}
       <section id="use-cases" className="landing-section mx-auto max-w-6xl px-4 py-20 md:py-28">
-        <SectionReveal className="text-center">
-          <p className="text-xs font-semibold uppercase tracking-widest text-emerald-400">
-            Use cases
-          </p>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight text-white md:text-4xl">
-            Built for the forms teams actually ship.
-          </h2>
+        <SectionReveal>
+          <LandingSectionHeader
+            label="Use cases"
+            title="Built for the forms and surveys teams actually ship."
+          />
         </SectionReveal>
 
         <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {USE_CASES.map((item, i) => (
-            <SectionReveal key={item.title} delay={i * 0.04}>
-              <article className="h-full rounded-md border border-zinc-800 bg-zinc-900/40 p-5 hover:border-zinc-700">
-                <item.icon className="size-5 text-zinc-300" stroke={1.5} />
-                <h3 className="mt-3 text-sm font-semibold text-white">{item.title}</h3>
-                <p className="mt-2 text-xs leading-relaxed text-zinc-400">{item.description}</p>
+          {USE_CASES.map((item, index) => (
+            <SectionReveal key={item.title} delay={index * 0.04}>
+              <article className="h-full rounded-md border border-zinc-800 bg-zinc-900/40 p-5 transition-colors hover:border-zinc-700">
+                <item.icon className="size-5 text-emerald-400/90" stroke={1.5} />
+                <h3 className="mt-3 text-base font-semibold text-white">{item.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-zinc-400">{item.description}</p>
               </article>
             </SectionReveal>
           ))}
@@ -395,19 +426,18 @@ export function LandingPage() {
 
       {/* FAQ */}
       <section id="faq" className="landing-section mx-auto max-w-3xl px-4 py-20 md:py-28">
-        <SectionReveal className="text-center">
-          <p className="text-xs font-semibold uppercase tracking-widest text-emerald-400">FAQ</p>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight text-white">Common questions</h2>
+        <SectionReveal>
+          <LandingSectionHeader label="FAQ" title="Common questions" />
         </SectionReveal>
 
         <SectionReveal className="mt-10 rounded-lg border border-zinc-800 bg-zinc-900/40 px-4 md:px-6">
           <Accordion type="single" collapsible className="w-full">
             {FAQ_ITEMS.map((item) => (
               <AccordionItem key={item.q} value={item.q} className="border-zinc-800">
-                <AccordionTrigger className="text-left text-sm text-zinc-200 hover:text-white hover:no-underline">
+                <AccordionTrigger className="py-4 text-left text-base font-medium text-zinc-200 hover:text-white hover:no-underline">
                   {item.q}
                 </AccordionTrigger>
-                <AccordionContent className="text-sm leading-relaxed text-zinc-400">
+                <AccordionContent className="pb-4 text-sm leading-relaxed text-zinc-400 md:text-[0.9375rem]">
                   {item.a}
                 </AccordionContent>
               </AccordionItem>
@@ -420,10 +450,10 @@ export function LandingPage() {
       <section id="cta" className="landing-section mx-auto max-w-6xl px-4 pb-8">
         <div className="hex-grid-bg rounded-lg border border-zinc-800 bg-zinc-900/60 px-6 py-14 text-center md:px-12 md:py-16">
           <SectionReveal>
-            <h2 className="text-2xl font-bold tracking-tight text-white md:text-3xl">
+            <h2 className="text-2xl font-bold tracking-tight text-white sm:text-3xl md:text-4xl">
               Start with a blank form. Finish with answers you can trust.
             </h2>
-            <p className="mx-auto mt-4 max-w-lg text-sm text-zinc-400">
+            <p className="mx-auto mt-4 max-w-lg text-base text-zinc-400">
               Join teams using HexForm to launch faster and review responses in one place.
             </p>
             <LandingCtas className="mt-8" />
