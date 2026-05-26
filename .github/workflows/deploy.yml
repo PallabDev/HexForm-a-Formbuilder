@@ -17,7 +17,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-size: 20
+          node-version: 20
           cache: 'npm'
 
       - name: Install Dependencies
@@ -36,27 +36,27 @@ jobs:
       - name: SSH and Deploy to Server
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
+          host: 88.150.138.98
+          username: root
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: ${{ secrets.SSH_PORT || 22 }}
+          port: 22
           script: |
-            cd ${{ secrets.WORK_DIR }}
-            
+            cd /root/projects
+
             # Fetch latest changes
             git pull origin main || git pull origin master
-            
+
             # Install any new dependencies
             npm install
-            
+
             # Build all packages
             npm run build
-            
+
             # Apply migrations if necessary
             npm run db:migrate --if-present
-            
+
             # Reload PM2 services
             pm2 restart ecosystem.config.js || pm2 start ecosystem.config.js
-            
+
             # Save current PM2 state
             pm2 save

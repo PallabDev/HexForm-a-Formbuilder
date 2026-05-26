@@ -5,6 +5,10 @@ const envSchema = z.object({
   NODE_ENV: z.enum(["development", "prod"]).default("development"),
   BASE_URL: z.string().default("http://localhost:8000"),
   ALLOWED_ORIGIN: z.string().optional(),
+  DATABASE_URL: z.string(),
+  JWT_SECRET: z.string(),
+  RAZORPAY_KEY_ID: z.string().optional(),
+  RAZORPAY_KEY_SECRET: z.string().optional(),
 });
 
 function createEnv(env: NodeJS.ProcessEnv) {
