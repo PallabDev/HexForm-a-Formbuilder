@@ -36,116 +36,121 @@ jobs:
       - name: Build
         run: pnpm build
 
-deploy:
-  name: Deploy to Remote VPS
-  needs: test-and-typecheck
-  runs-on: ubuntu-latest
+  deploy:
+    name: Deploy to Remote VPS
+    needs: test-and-typecheck
+    runs-on: ubuntu-latest
 
-  steps:
-    - name: Deploy via SSH
-      uses: appleboy/ssh-action@v1.0.3
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
 
-      with:
-        host: 88.150.138.98
-        username: root
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
-        port: 22
+        with:
+          host: 88.150.138.98
+          username: root
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
 
-        script: |
-          export NVM_DIR="$HOME/.nvm"
+          script: |
+            export NVM_DIR="$HOME/.nvm"
 
-          if [ -s "$NVM_DIR/nvm.sh" ]; then
-            source "$NVM_DIR/nvm.sh"
-          fi
+            if [ -s "$NVM_DIR/nvm.sh" ]; then
+              source "$NVM_DIR/nvm.sh"
+            fi
 
-          source ~/.bashrc || true
-          source ~/.profile || true
+            source ~/.bashrc || true
+            source ~/.profile || true
 
-          echo "================================="
-          echo "NODE INFO"
-          echo "================================="
+            echo "================================="
+            echo "NODE INFO"
+            echo "================================="
 
-          which node
-          node -v
+            which node
+            node -v
 
-          echo "================================="
-          echo "PNPM INFO"
-          echo "================================="
+            echo "================================="
+            echo "PNPM INFO"
+            echo "================================="
 
-          which pnpm
-          pnpm -v
+            which pnpm
+            pnpm -v
 
-          echo "================================="
-          echo "PM2 INFO"
-          echo "================================="
+            echo "================================="
+            echo "PM2 INFO"
+            echo "================================="
 
-          which pm2
-          pm2 -v
+            which pm2
+            pm2 -v
 
-          echo "================================="
-          echo "PROJECT FILES"
-          echo "================================="
+            echo "================================="
+            echo "PROJECT FILES"
+            echo "================================="
 
-          cd /root/projects/HexForm-a-Formbuilder
+            cd /root/projects/HexForm-a-Formbuilder
 
-          pwd
+            pwd
 
-          ls -la
+            echo "Pulling latest changes from Git..."
+            git pull origin main || git pull origin master || true
 
-          echo "================================="
-          echo "INSTALLING"
-          echo "================================="
+            ls -la
 
-          pnpm install --frozen-lockfile
+            echo "================================="
+            echo "INSTALLING"
+            echo "================================="
 
-          echo "================================="
-          echo "BUILDING"
-          echo "================================="
+            pnpm install --frozen-lockfile
 
-          NODE_OPTIONS="--max-old-space-size=4096" pnpm build
+            echo "================================="
+            echo "BUILDING"
+            echo "================================="
 
-          echo "================================="
-          echo "PM2 ECOSYSTEM FILE"
-          echo "================================="
+            NODE_OPTIONS="--max-old-space-size=4096" pnpm build
 
-          cat ecosystem.config.js
+            echo "================================="
+            echo "PM2 ECOSYSTEM FILE"
+            echo "================================="
 
-          echo "================================="
-          echo "STARTING PM2"
-          echo "================================="
+            cat ecosystem.config.js
 
-          pm2 start ecosystem.config.js --update-env
+            echo "================================="
+            echo "STARTING PM2"
+            echo "================================="
 
-          echo "================================="
-          echo "PM2 LIST"
-          echo "================================="
+            # Delete existing registrations to ensure clean start, then start
+            pm2 delete hexform-backend hexform-frontend || true
+            pm2 start ecosystem.config.js --update-env
 
-          pm2 list
+            echo "================================="
+            echo "PM2 LIST"
+            echo "================================="
 
-          echo "================================="
-          echo "PM2 DESCRIBE FRONTEND"
-          echo "================================="
+            pm2 list
 
-          pm2 describe frontend || true
+            echo "================================="
+            echo "PM2 DESCRIBE FRONTEND"
+            echo "================================="
 
-          echo "================================="
-          echo "PM2 DESCRIBE BACKEND"
-          echo "================================="
+            pm2 describe hexform-frontend || true
 
-          pm2 describe backend || true
+            echo "================================="
+            echo "PM2 DESCRIBE BACKEND"
+            echo "================================="
 
-          echo "================================="
-          echo "PM2 LOGS"
-          echo "================================="
+            pm2 describe hexform-backend || true
 
-          pm2 logs --lines 50 --nostream || true
+            echo "================================="
+            echo "PM2 LOGS"
+            echo "================================="
 
-          echo "================================="
-          echo "SAVING PM2"
-          echo "================================="
+            pm2 logs --lines 50 --nostream || true
 
-          pm2 save
+            echo "================================="
+            echo "SAVING PM2"
+            echo "================================="
 
-          echo "================================="
-          echo "DEPLOY DONE"
-          echo "================================="
+            pm2 save
+
+            echo "================================="
+            echo "DEPLOY DONE"
+            echo "================================="
