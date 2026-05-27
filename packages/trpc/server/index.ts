@@ -1,4 +1,4 @@
-import { publicProcedure, router } from "./trpc.js";
+import {  router } from "./trpc.js";
 
 import { healthRouter } from "./routes/health/route.js";
 import { authRouter } from "./routes/auth/route.js";
