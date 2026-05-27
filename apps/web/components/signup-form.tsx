@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useForm } from "react-hook-form"
+import { toast } from "react-hot-toast"
 import { cn } from "~/lib/utils"
 import { Button } from "~/components/ui/button"
 import { Alert, AlertDescription } from "~/components/ui/alert"
@@ -56,9 +57,18 @@ export function SignupForm({
     async function handleSignupSubmit(values: SignupFormValues) {
         setAuthError(null)
 
-        // if values.password & values.confirmPassword are not same show an error
+        // basic client-side password validations before sending request
+        if (values.password.length < 8) {
+            const message = "Password must be at least 8 characters long."
+            setAuthError(message)
+            toast.error(message)
+            return
+        }
+
         if (values.password !== values.confirmPassword) {
-            setAuthError("Passwords do not match.")
+            const message = "Passwords do not match."
+            setAuthError(message)
+            toast.error(message)
             return
         }
 
@@ -66,20 +76,25 @@ export function SignupForm({
             const { id } = await createUserWithEmailAndPasswordAsync({
                 email: values.email,
                 fullName: values.fullName,
-                password: values.password
+                password: values.password,
             })
 
             if (!id) {
-                setAuthError("Unable to create your account right now.")
+                const message = "Unable to create your account right now."
+                setAuthError(message)
+                toast.error(message)
                 return
             }
 
             router.replace("/verify-email?sent=1")
         } catch (error) {
-            setAuthError(getSafeAuthErrorMessage(error, "Unable to create your account. Please check your details and try again."))
+            const message = getSafeAuthErrorMessage(
+                error,
+                "Unable to create your account. Please check your details and try again.",
+            )
+            setAuthError(message)
+            toast.error(message)
         }
-
-
     }
 
     return (

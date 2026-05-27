@@ -1,5 +1,5 @@
 import { integer, pgEnum, pgTable, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
-import { usersTable } from "./user";
+import { usersTable } from "./user.js";
 
 export const billingIntervalEnum = pgEnum("billing_interval", ["MONTHLY"]);
 

@@ -31,6 +31,7 @@ import {
 } from "~/components/forms/public-form-shell";
 import { usePublicForm, useSignFileUpload, useSubmitForm } from "~/hooks/api/forms";
 import { cn } from "~/lib/utils";
+import { TiptapViewer } from "~/components/ui/tiptap-viewer";
 
 type AnswerValue = string | number | boolean | string[] | null;
 type UploadStatus = "idle" | "uploading" | "uploaded" | "error";
@@ -880,9 +881,10 @@ export function PublicFormClient({ slug }: { slug: string }) {
                                 </h1>
                                 {form.description ? (
                                     <div
-                                        className="prose prose-invert max-w-none rounded-md border border-zinc-800 bg-zinc-950/50 p-4 text-sm leading-relaxed text-zinc-400"
-                                        dangerouslySetInnerHTML={{ __html: form.description }}
-                                    />
+                                        className="rounded-md border border-zinc-800 bg-zinc-950/50 p-4"
+                                    >
+                                        <TiptapViewer value={form.description} />
+                                    </div>
                                 ) : null}
                                 {isPreview ? (
                                     <p className="text-xs text-amber-400/90">Preview mode — submissions are not saved.</p>
