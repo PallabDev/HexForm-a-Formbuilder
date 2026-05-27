@@ -74,7 +74,7 @@ export function SignupForm({
                 return
             }
 
-            router.replace("/")
+            router.replace("/verify-email?sent=1")
         } catch (error) {
             setAuthError(getSafeAuthErrorMessage(error, "Unable to create your account. Please check your details and try again."))
         }

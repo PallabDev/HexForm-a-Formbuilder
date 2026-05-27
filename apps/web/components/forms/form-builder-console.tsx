@@ -81,7 +81,7 @@ const fieldTypes: Array<{ value: FieldType; label: string }> = [
     { value: "CHECKBOX", label: "Checkbox Field" },
     { value: "RATING", label: "Rating Scale (1-5)" },
     { value: "DATE", label: "Date Picker" },
-    { value: "FILE_URL", label: "Secure File Upload Link" },
+    { value: "FILE_URL", label: "Secure File Upload" },
     { value: "YES_NO", label: "Yes / No Toggle" },
 ];
 
@@ -246,7 +246,7 @@ export function FormBuilderConsole({ formId }: FormBuilderConsoleProps) {
         } else if (type === "NUMBER") {
             setFieldPlaceholder("e.g. 25");
         } else if (type === "FILE_URL") {
-            setFieldPlaceholder("Upload link (e.g. Dropbox, Drive)");
+            setFieldPlaceholder("Upload a JPG, PNG, PDF, or MP4");
         } else if (type === "RATING") {
             setFieldPlaceholder("1-5 rating");
         } else {

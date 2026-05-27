@@ -1,4 +1,4 @@
-import { CreateProductInputType, createProductInput } from "./model";
+import { CreateProductInputType, createProductInput } from "./model.js";
 
 class ProductService {
     public async createProductService(payload: CreateProductInputType) {

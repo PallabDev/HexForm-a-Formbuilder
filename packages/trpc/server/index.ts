@@ -1,16 +1,16 @@
-import { publicProcedure, router } from "./trpc";
+import { publicProcedure, router } from "./trpc.js";
 
-import { healthRouter } from "./routes/health/route";
-import { authRouter } from "./routes/auth/route";
-import { formRouter } from "./routes/form/route";
-import { productRouter } from "./routes/product/route";
+import { healthRouter } from "./routes/health/route.js";
+import { authRouter } from "./routes/auth/route.js";
+import { formRouter } from "./routes/form/route.js";
+import { productRouter } from "./routes/product/route.js";
 
 export const serverRouter = router({
-  health: healthRouter,
-  auth: authRouter,
-  form: formRouter,
-  product: productRouter,
+    health: healthRouter,
+    auth: authRouter,
+    form: formRouter,
+    product: productRouter,
 });
 
-export { createContext } from "./context";
+export { createContext } from "./context.js";
 export type ServerRouter = typeof serverRouter;

@@ -12,6 +12,7 @@ import {
     IconStar,
     IconVolume,
     IconVolumeOff,
+    IconUpload,
 } from "@tabler/icons-react";
 import toast from "react-hot-toast";
 import Link from "next/link";
@@ -28,13 +29,29 @@ import {
     formCardClass,
     formShellClass,
 } from "~/components/forms/public-form-shell";
-import { usePublicForm, useSubmitForm } from "~/hooks/api/forms";
+import { usePublicForm, useSignFileUpload, useSubmitForm } from "~/hooks/api/forms";
 import { cn } from "~/lib/utils";
 
 type AnswerValue = string | number | boolean | string[] | null;
+type UploadStatus = "idle" | "uploading" | "uploaded" | "error";
+const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
+const ALLOWED_FILE_TYPES = ["image/jpeg", "image/jpg", "image/png", "application/pdf", "video/mp4"];
+const ALLOWED_FILE_EXTENSIONS = ".jpg,.jpeg,.png,.pdf,.mp4";
 
 function getNumberDigitCount(value: number) {
     return String(value).replace(/\D/g, "").length;
+}
+
+function getPublicReceiptAnswers(
+    fields: NonNullable<ReturnType<typeof usePublicForm>["form"]>["fields"],
+    answers: Record<string, AnswerValue>,
+) {
+    return Object.fromEntries(
+        fields.map((field) => [
+            field.labelKey,
+            field.type === "FILE_URL" && answers[field.labelKey] ? "Uploaded file" : answers[field.labelKey] ?? null,
+        ]),
+    );
 }
 
 // Synthesized warm acoustic tones (Web Audio API)
@@ -160,9 +177,13 @@ class ConfettiParticle {
 export function PublicFormClient({ slug }: { slug: string }) {
     const { form, isLoading, error } = usePublicForm(slug);
     const submitForm = useSubmitForm();
+    const signFileUpload = useSignFileUpload();
 
     const [currentStep, setCurrentStep] = useState(-1);
     const [answers, setAnswers] = useState<Record<string, AnswerValue>>({});
+    const [selectedFiles, setSelectedFiles] = useState<Record<string, File | null>>({});
+    const [uploadedFileUrls, setUploadedFileUrls] = useState<Record<string, string | null>>({});
+    const [uploadStatus, setUploadStatus] = useState<Record<string, UploadStatus>>({});
     const [respondentEmail, setRespondentEmail] = useState("");
     const [done, setDone] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -336,6 +357,85 @@ export function PublicFormClient({ slug }: { slug: string }) {
         }
     };
 
+    const validateFile = (file: File) => {
+        if (file.size > MAX_FILE_SIZE_BYTES) {
+            return "File must be 50MB or less.";
+        }
+        if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+            return "Only JPG, PNG, PDF, and MP4 files are allowed.";
+        }
+        return null;
+    };
+
+    const uploadFileAnswer = async (fieldKey: string, file: File) => {
+        if (!form) throw new Error("Form is not loaded.");
+
+        const signedUpload = await signFileUpload.mutateAsync({
+            slug: form.slug,
+            fieldKey,
+            filename: file.name,
+            mimeType: file.type,
+            sizeBytes: file.size,
+        });
+
+        const body = new FormData();
+        for (const [key, value] of Object.entries(signedUpload.fields)) {
+            body.append(key, value);
+        }
+        body.append("file", file);
+
+        const response = await fetch(signedUpload.uploadUrl, {
+            method: "POST",
+            body,
+        });
+
+        if (!response.ok) {
+            throw new Error("File upload failed. Please try again.");
+        }
+
+        const uploaded = (await response.json()) as { secure_url?: string };
+        if (!uploaded.secure_url) {
+            throw new Error("Cloudinary did not return an uploaded file URL.");
+        }
+
+        return uploaded.secure_url;
+    };
+
+    const handleUploadFileSelection = async (fieldKey: string, file: File | null) => {
+        if (!file) {
+            setSelectedFiles((prev) => ({ ...prev, [fieldKey]: null }));
+            setUploadedFileUrls((prev) => ({ ...prev, [fieldKey]: null }));
+            setUploadStatus((prev) => ({ ...prev, [fieldKey]: "idle" }));
+            setAnswers((prev) => ({ ...prev, [fieldKey]: null }));
+            return;
+        }
+
+        const fileError = validateFile(file);
+        if (fileError) {
+            setErrorMessage(fileError);
+            setUploadStatus((prev) => ({ ...prev, [fieldKey]: "error" }));
+            return;
+        }
+
+        setErrorMessage(null);
+        setSelectedFiles((prev) => ({ ...prev, [fieldKey]: file }));
+        setUploadedFileUrls((prev) => ({ ...prev, [fieldKey]: null }));
+        setUploadStatus((prev) => ({ ...prev, [fieldKey]: "uploading" }));
+        setAnswers((prev) => ({ ...prev, [fieldKey]: file.name }));
+
+        try {
+            const uploadedUrl = await uploadFileAnswer(fieldKey, file);
+            setUploadedFileUrls((prev) => ({ ...prev, [fieldKey]: uploadedUrl }));
+            setUploadStatus((prev) => ({ ...prev, [fieldKey]: "uploaded" }));
+            setAnswers((prev) => ({ ...prev, [fieldKey]: "Uploaded file" }));
+            toast.success("File uploaded");
+        } catch (error) {
+            setUploadedFileUrls((prev) => ({ ...prev, [fieldKey]: null }));
+            setUploadStatus((prev) => ({ ...prev, [fieldKey]: "error" }));
+            setErrorMessage(error instanceof Error ? error.message : "File upload failed.");
+        }
+    };
+
     // Focus input automatically when step changes
     useEffect(() => {
         if (activeInputRef.current) {
@@ -395,7 +495,7 @@ export function PublicFormClient({ slug }: { slug: string }) {
         return () => {
             window.removeEventListener("keydown", handleKeyDown);
         };
-    }, [currentStep, form, answers, respondentEmail, alreadySubmitted, done]);
+    }, [currentStep, form, answers, selectedFiles, uploadedFileUrls, uploadStatus, respondentEmail, alreadySubmitted, done]);
 
     const validateStep = (): boolean => {
         if (currentStep === -1) {
@@ -426,11 +526,23 @@ export function PublicFormClient({ slug }: { slug: string }) {
             return false;
         }
 
-        if (field.type === "FILE_URL" && typeof val === "string" && val) {
-            try {
-                new URL(val);
-            } catch {
-                setErrorMessage(`${field.label} must be a valid URL.`);
+        if (field.type === "FILE_URL") {
+            const status = uploadStatus[field.labelKey] ?? "idle";
+            const uploadedUrl = uploadedFileUrls[field.labelKey];
+            if (status === "uploading") {
+                setErrorMessage("Please wait for the file upload to finish.");
+                return false;
+            }
+            if (status === "error") {
+                setErrorMessage("Please choose the file again. The last upload failed.");
+                return false;
+            }
+            if (field.isRequired && !uploadedUrl) {
+                setErrorMessage(`${field.label} is a required field.`);
+                return false;
+            }
+            if (val && !uploadedUrl) {
+                setErrorMessage(`Please upload ${field.label} before continuing.`);
                 return false;
             }
         }
@@ -518,12 +630,27 @@ export function PublicFormClient({ slug }: { slug: string }) {
                 return;
             }
 
-            if (field.type === "FILE_URL" && typeof val === "string" && val) {
-                try {
-                    new URL(val);
-                } catch {
+            if (field.type === "FILE_URL") {
+                const status = uploadStatus[field.labelKey] ?? "idle";
+                const uploadedUrl = uploadedFileUrls[field.labelKey];
+                if (status === "uploading") {
                     setCurrentStep(i);
-                    setErrorMessage(`${field.label} must be a valid URL.`);
+                    setErrorMessage("Please wait for the file upload to finish.");
+                    return;
+                }
+                if (status === "error") {
+                    setCurrentStep(i);
+                    setErrorMessage("Please choose the file again. The last upload failed.");
+                    return;
+                }
+                if (field.isRequired && !uploadedUrl) {
+                    setCurrentStep(i);
+                    setErrorMessage(`${field.label} is a required field.`);
+                    return;
+                }
+                if (val && !uploadedUrl) {
+                    setCurrentStep(i);
+                    setErrorMessage(`Please upload ${field.label} before submitting.`);
                     return;
                 }
             }
@@ -580,18 +707,27 @@ export function PublicFormClient({ slug }: { slug: string }) {
         }
 
         try {
+            const answersToSubmit = Object.fromEntries(
+                form.fields.map((field) => [
+                    field.labelKey,
+                    field.type === "FILE_URL"
+                        ? uploadedFileUrls[field.labelKey] ?? null
+                        : answers[field.labelKey] ?? null,
+                ]),
+            ) as Record<string, AnswerValue>;
+
             await submitForm.mutateAsync({
                 slug: form.slug,
                 respondentEmail: respondentEmail || null,
                 answers: form.fields.map((field) => ({
                     fieldKey: field.labelKey,
-                    value: answers[field.labelKey] ?? null,
+                    value: answersToSubmit[field.labelKey] ?? null,
                 })),
             });
 
             if (typeof window !== "undefined") {
                 localStorage.setItem(`hexform_submitted_${slug}`, "true");
-                localStorage.setItem(`hexform_answers_${slug}`, JSON.stringify(answers));
+                localStorage.setItem(`hexform_answers_${slug}`, JSON.stringify(answersToSubmit));
                 localStorage.removeItem(`hexform_draft_${slug}`);
             }
 
@@ -613,6 +749,8 @@ export function PublicFormClient({ slug }: { slug: string }) {
         return <PublicFormError message={error?.message} />;
     }
 
+    const receiptAnswers = getPublicReceiptAnswers(form.fields, answers);
+    const isAnyFileUploading = Object.values(uploadStatus).includes("uploading");
     const receiptActions = (
         <div className="grid gap-3 sm:grid-cols-2">
             <Button
@@ -621,7 +759,7 @@ export function PublicFormClient({ slug }: { slug: string }) {
                 className="rounded-md border-zinc-700"
                 onClick={() => {
                     playSound("click");
-                    void navigator.clipboard.writeText(JSON.stringify(answers, null, 2));
+                    void navigator.clipboard.writeText(JSON.stringify(receiptAnswers, null, 2));
                     toast.success("Answers copied");
                 }}
             >
@@ -638,7 +776,7 @@ export function PublicFormClient({ slug }: { slug: string }) {
             <PublicFormReceipt
                 title={form.title}
                 fields={form.fields}
-                answers={answers}
+                answers={receiptAnswers}
                 headline="Response already recorded"
                 description={
                     <>
@@ -662,7 +800,7 @@ export function PublicFormClient({ slug }: { slug: string }) {
                 <PublicFormReceipt
                     title={form.title}
                     fields={form.fields}
-                    answers={answers}
+                    answers={receiptAnswers}
                     headline="Response submitted"
                     description="Thank you — your answers were saved successfully."
                 >
@@ -777,6 +915,8 @@ export function PublicFormClient({ slug }: { slug: string }) {
                     {/* Question Steps */}
                     {form.fields.map((field, idx) => {
                         if (idx !== currentStep) return null;
+                        const isFileUploadPending =
+                            field.type === "FILE_URL" && uploadStatus[field.labelKey] === "uploading";
                         return (
                             <div
                                 key={field.id}
@@ -817,6 +957,11 @@ export function PublicFormClient({ slug }: { slug: string }) {
                                             playSound("click");
                                             setAnswers((prev) => ({ ...prev, [field.labelKey]: val }));
                                         }}
+                                        selectedFile={selectedFiles[field.labelKey] ?? null}
+                                        uploadStatus={uploadStatus[field.labelKey] ?? "idle"}
+                                        onFileChange={(file) => {
+                                            void handleUploadFileSelection(field.labelKey, file);
+                                        }}
                                         inputRef={activeInputRef as any}
                                         toggleOption={(optVal) => toggleOption(field, optVal)}
                                     />
@@ -840,9 +985,10 @@ export function PublicFormClient({ slug }: { slug: string }) {
                                         <Button
                                             type="button"
                                             onClick={handleNext}
+                                            disabled={isFileUploadPending}
                                             className="cta-primary rounded-md font-semibold"
                                         >
-                                            Next
+                                            {isFileUploadPending ? "Uploading..." : "Next"}
                                             <IconChevronRight className="size-4" />
                                         </Button>
                                     </div>
@@ -869,7 +1015,12 @@ export function PublicFormClient({ slug }: { slug: string }) {
                                     const rawVal = answers[f.labelKey];
                                     let displayVal = "—";
                                     if (rawVal !== undefined && rawVal !== null && rawVal !== "") {
-                                        displayVal = Array.isArray(rawVal) ? rawVal.join(", ") : String(rawVal);
+                                        displayVal =
+                                            f.type === "FILE_URL"
+                                                ? "Uploaded file"
+                                                : Array.isArray(rawVal)
+                                                    ? rawVal.join(", ")
+                                                    : String(rawVal);
                                     }
                                     return (
                                         <button
@@ -905,10 +1056,10 @@ export function PublicFormClient({ slug }: { slug: string }) {
                                 <Button
                                     type="button"
                                     onClick={handleSubmit}
-                                    disabled={submitForm.isPending}
+                                    disabled={submitForm.isPending || isAnyFileUploading}
                                     className="cta-primary flex-1 rounded-md font-semibold"
                                 >
-                                    {submitForm.isPending ? (
+                                    {submitForm.isPending || isAnyFileUploading ? (
                                         <span className="size-4 animate-spin rounded-full border-2 border-zinc-950/30 border-t-zinc-950" />
                                     ) : (
                                         <>
@@ -946,12 +1097,18 @@ function FieldControl({
     field,
     value,
     onChange,
+    selectedFile,
+    uploadStatus,
+    onFileChange,
     inputRef,
     toggleOption,
 }: {
     field: NonNullable<ReturnType<typeof usePublicForm>["form"]>["fields"][number];
     value: AnswerValue;
     onChange: (value: AnswerValue) => void;
+    selectedFile: File | null;
+    uploadStatus: UploadStatus;
+    onFileChange: (file: File | null) => void;
     inputRef: React.MutableRefObject<HTMLInputElement | HTMLTextAreaElement | null>;
     toggleOption: (optVal: string) => void;
 }) {
@@ -1083,6 +1240,58 @@ function FieldControl({
         );
     }
 
+    if (field.type === "FILE_URL") {
+        const fileLabel = selectedFile?.name ?? "Choose a secure file";
+        const statusLabel =
+            uploadStatus === "uploading"
+                ? "Uploading..."
+                : uploadStatus === "uploaded"
+                    ? "Uploaded"
+                    : uploadStatus === "error"
+                        ? "Upload failed"
+                        : "JPG, PNG, PDF, or MP4 up to 50MB";
+
+        return (
+            <label
+                htmlFor={field.labelKey}
+                className="block cursor-pointer rounded-md border border-dashed border-emerald-500/40 bg-emerald-500/5 p-6 transition-colors hover:border-emerald-400/70 hover:bg-emerald-500/10"
+            >
+                <div className="flex flex-col items-center justify-center gap-3 text-center sm:flex-row sm:justify-between sm:text-left">
+                    <div className="flex min-w-0 items-center gap-3">
+                        <span className="flex size-10 shrink-0 items-center justify-center rounded-md border border-emerald-500/30 bg-emerald-500/10 text-emerald-300">
+                            <IconUpload className="size-5" />
+                        </span>
+                        <div className="min-w-0 space-y-1">
+                            <span className="block truncate text-sm font-semibold text-zinc-100">{fileLabel}</span>
+                            <span className={cn(
+                                "block text-xs",
+                                uploadStatus === "uploaded"
+                                    ? "text-emerald-300"
+                                    : uploadStatus === "error"
+                                        ? "text-rose-300"
+                                        : "text-zinc-500",
+                            )}>
+                                {statusLabel}
+                            </span>
+                        </div>
+                    </div>
+                    <span className="inline-flex shrink-0 rounded-md bg-emerald-500 px-3 py-2 text-xs font-semibold text-zinc-950">
+                        {uploadStatus === "uploading" ? "Uploading" : "Select file"}
+                    </span>
+                </div>
+                <Input
+                    id={field.labelKey}
+                    type="file"
+                    accept={ALLOWED_FILE_EXTENSIONS}
+                    disabled={uploadStatus === "uploading"}
+                    onChange={(event) => onFileChange(event.target.files?.[0] ?? null)}
+                    ref={inputRef as any}
+                    className="sr-only"
+                />
+            </label>
+        );
+    }
+
     if (field.type === "RATING") {
         const valRating = typeof value === "number" ? value : 0;
         return (
@@ -1126,9 +1335,7 @@ function FieldControl({
                         ? "number"
                         : field.type === "DATE"
                             ? "date"
-                            : field.type === "FILE_URL"
-                                ? "url"
-                                : "text"
+                            : "text"
             }
             placeholder={field.placeholder ?? "Type your answer here..."}
             value={typeof value === "string" || typeof value === "number" ? value : ""}

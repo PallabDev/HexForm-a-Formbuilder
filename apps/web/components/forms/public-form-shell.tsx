@@ -11,7 +11,7 @@ import { cn } from "~/lib/utils";
 export const formCardClass =
   "relative overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900/60 p-6 sm:p-8 shadow-lg shadow-black/20";
 
-export const formShellClass = "min-h-dvh hex-grid-bg bg-zinc-950 text-zinc-100 flex flex-col";
+export const formShellClass = "min-h-dvh bg-zinc-950 text-zinc-100 flex flex-col";
 
 export function PublicFormBrandBar({
   title,
@@ -87,7 +87,7 @@ export function PublicFormReceipt({
   children,
 }: {
   title: string;
-  fields: { id: string; label: string; labelKey: string }[];
+  fields: { id: string; label: string; labelKey: string; type?: string }[];
   answers: Record<string, unknown>;
   headline: string;
   description: ReactNode;
@@ -113,7 +113,12 @@ export function PublicFormReceipt({
               const val = answers[f.labelKey];
               let displayVal = "—";
               if (val !== undefined && val !== null && val !== "") {
-                displayVal = Array.isArray(val) ? val.join(", ") : String(val);
+                displayVal =
+                  f.type === "FILE_URL"
+                    ? "Uploaded file"
+                    : Array.isArray(val)
+                      ? val.join(", ")
+                      : String(val);
               }
               return (
                 <div

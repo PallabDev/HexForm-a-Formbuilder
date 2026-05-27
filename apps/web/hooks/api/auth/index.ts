@@ -91,3 +91,20 @@ export const useSignout = (options?: { onSuccess?: () => void }) => {
         status
     }
 }
+
+export const useVerifyEmail = () => {
+    const utils = trpc.useUtils()
+    return trpc.auth.verifyEmail.useMutation({
+        onSuccess: async () => {
+            await utils.auth.getLoggedInUserInfo.invalidate()
+        }
+    })
+}
+
+export const useRequestPasswordReset = () => {
+    return trpc.auth.requestPasswordReset.useMutation()
+}
+
+export const useResetPassword = () => {
+    return trpc.auth.resetPassword.useMutation()
+}

@@ -156,6 +156,8 @@ export const useExploreForms = (input?: RouterInputs["form"]["explorePublic"]) =
 
 export const useSubmitForm = () => trpc.form.submitPublic.useMutation();
 
+export const useSignFileUpload = () => trpc.form.signFileUpload.useMutation();
+
 export const useFormResponses = (input: RouterInputs["form"]["listResponses"], enabled = true) => {
   const query = trpc.form.listResponses.useQuery(input, {
     enabled: Boolean(input.formId) && enabled,

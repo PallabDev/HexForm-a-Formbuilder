@@ -7,7 +7,12 @@ import { env } from "./env.js";
 async function init() {
     try {
         const server = http.createServer(expressApplication);
-        const PORT: number = env.PORT ? +env.PORT : 8000;
+        const PORT: number =
+            process.env.NODE_ENV === "development"
+                ? 8600
+                : env.PORT
+                    ? +env.PORT
+                    : 8000;
         server.listen(PORT, () => {
             logger.info(`http server is running on PORT ${PORT}`);
         });

@@ -3,14 +3,27 @@ import {
     CreateUserWithEmailAndPasswordInputType,
     generateUserTokenPayload,
     generateUserTokenPayloadType,
+    requestPasswordResetInput,
+    RequestPasswordResetInputType,
+    resetPasswordInput,
+    ResetPasswordInputType,
     signInUserWithEmailAndPasswordInput,
-    SignInUserWithEmailAndPasswordInputType
-} from './model'
+    SignInUserWithEmailAndPasswordInputType,
+    verifyEmailInput,
+    VerifyEmailInputType
+} from './model.js'
 import { db, eq } from '@repo/database'
 import { usersTable } from '@repo/database/models/user'
-import * as JWT from "jsonwebtoken"
-import { createHmac, randomBytes, } from "node:crypto"
-import { env } from '../env'
+import { env } from '../env.js'
+import { sendPasswordResetEmail, sendVerificationEmail } from './email.js'
+import {
+    createOpaqueToken,
+    createSalt,
+    generatePasswordHash,
+    hashOpaqueToken,
+    signUserJwt,
+    verifyUserJwt
+} from './tokens.js'
 class UserService {
     private async getUserByEmail(email: string) {
         const result = await db.select().from(usersTable).where(eq(usersTable.email, email));
@@ -18,16 +31,18 @@ class UserService {
         return result[0];
     }
 
+    private getFrontendUrl() {
+        return env.FRONTEND_URL ?? "https://hexform.pallabdev.in";
+    }
+
     private async generateUserToken(payload: generateUserTokenPayloadType) {
         const { id } = await generateUserTokenPayload.parseAsync(payload)
-        const token = JWT.sign(
-            { id }, env.JWT_SECRET
-        )
+        const token = signUserJwt({ id })
         return { token }
     }
 
     private generateHash(password: string, salt: string) {
-        return createHmac('sha256', salt).update(password).digest("hex");
+        return generatePasswordHash(password, salt);
     }
 
     public async createUserWithEmailAndPassword(payload: CreateUserWithEmailAndPasswordInputType) {
@@ -40,14 +55,16 @@ class UserService {
 
         if (existingUserWithEmail) throw new Error(`An account with this email already exists.`);
 
-        const salt = randomBytes(16).toString("hex")
+        const salt = createSalt()
 
         const hash = this.generateHash(password, salt);
+        const emailVerification = createOpaqueToken();
 
-        // todo add email send logic here
         const createdUser = await db.insert(usersTable).values({
             fullName,
             email,
+            emailVerified: false,
+            emailVerificationToken: emailVerification.tokenHash,
             password: hash,
             salt
         }).returning({
@@ -56,15 +73,107 @@ class UserService {
         if (!createdUser || createdUser.length === 0 || !createdUser[0]?.id) throw new Error(`Unable to create your account right now.`)
         const userId = createdUser[0].id;
 
+        let verificationEmailSent = true;
+        try {
+            await sendVerificationEmail(
+                email,
+                fullName,
+                `${this.getFrontendUrl()}/verify-email?token=${encodeURIComponent(emailVerification.rawToken)}`,
+            );
+        } catch (error) {
+            verificationEmailSent = false;
+            console.error("Unable to send verification email", error);
+        }
 
         const { token } = await this.generateUserToken({ id: userId })
 
 
         return {
             id: userId,
-            token
+            token,
+            verificationEmailSent,
         }
 
+    }
+
+    public async verifyEmail(payload: VerifyEmailInputType) {
+        const { token } = await verifyEmailInput.parseAsync(payload);
+        const tokenHash = hashOpaqueToken(token);
+
+        const [user] = await db
+            .select({
+                id: usersTable.id,
+                emailVerified: usersTable.emailVerified,
+            })
+            .from(usersTable)
+            .where(eq(usersTable.emailVerificationToken, tokenHash))
+            .limit(1);
+
+        if (!user) throw new Error(`This verification link is invalid or has already been used.`);
+
+        await db
+            .update(usersTable)
+            .set({
+                emailVerified: true,
+                emailVerificationToken: null,
+            })
+            .where(eq(usersTable.id, user.id));
+
+        const { token: authToken } = await this.generateUserToken({ id: user.id });
+        return {
+            id: user.id,
+            token: authToken,
+        };
+    }
+
+    public async requestPasswordReset(payload: RequestPasswordResetInputType) {
+        const { email } = await requestPasswordResetInput.parseAsync(payload);
+        const user = await this.getUserByEmail(email);
+
+        if (!user) return { success: true };
+
+        const passwordReset = createOpaqueToken();
+        await db
+            .update(usersTable)
+            .set({ passwordResetToken: passwordReset.tokenHash })
+            .where(eq(usersTable.id, user.id));
+
+        await sendPasswordResetEmail(
+            user.email,
+            user.fullName,
+            `${this.getFrontendUrl()}/reset-password?token=${encodeURIComponent(passwordReset.rawToken)}`,
+        );
+
+        return { success: true };
+    }
+
+    public async resetPassword(payload: ResetPasswordInputType) {
+        const { token, password } = await resetPasswordInput.parseAsync(payload);
+        const tokenHash = hashOpaqueToken(token);
+
+        const [user] = await db
+            .select({
+                id: usersTable.id,
+            })
+            .from(usersTable)
+            .where(eq(usersTable.passwordResetToken, tokenHash))
+            .limit(1);
+
+        if (!user) throw new Error(`This password reset link is invalid or has already been used.`);
+
+        const salt = createSalt();
+        const hash = this.generateHash(password, salt);
+
+        await db
+            .update(usersTable)
+            .set({
+                password: hash,
+                salt,
+                passwordResetToken: null,
+            })
+            .where(eq(usersTable.id, user.id));
+
+        return { success: true };
     }
 
     public async signInUserWithEmailAndPassword(payload: SignInUserWithEmailAndPasswordInputType) {
@@ -90,7 +199,7 @@ class UserService {
     private async verifyUserToken(token: string) {
         try {
 
-            const verificationResult = JWT.verify(token, env.JWT_SECRET) as generateUserTokenPayloadType
+            const verificationResult = verifyUserJwt(token) as generateUserTokenPayloadType
             return verificationResult;
         } catch (error) {
             throw new Error(`Your session is invalid or expired. Please sign in again.`)
@@ -102,7 +211,8 @@ class UserService {
             id: usersTable.id,
             email: usersTable.email,
             fullName: usersTable.fullName,
-            profileImageUrl: usersTable.profileImageUrl
+            profileImageUrl: usersTable.profileImageUrl,
+            emailVerified: usersTable.emailVerified
 
         }).from(usersTable).where(eq(usersTable.id, id)).limit(1)
         if (!user) throw new Error(`User account was not found.`)
@@ -115,10 +225,12 @@ class UserService {
             id: userInfo.id,
             email: userInfo.email,
             fullName: userInfo.fullName,
-            profileImageUrl: userInfo.profileImageUrl
+            profileImageUrl: userInfo.profileImageUrl,
+            emailVerified: userInfo.emailVerified ?? false
         }
     }
 
 }
 
 export default UserService
+export { sendPaymentReceiptEmail } from "./email.js";
