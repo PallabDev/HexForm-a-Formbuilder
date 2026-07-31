@@ -63,7 +63,7 @@ app.use(
 );
 
 app.use(
-    "/trpc",
+    "/api/trpc",
     trpcExpress.createExpressMiddleware({
         router: serverRouter,
         createContext,
