@@ -41,7 +41,6 @@ services:
       NODE_ENV: "production"
       PORT: "8600"
     networks:
-      - caddy
       - hexform-net
 
   hexform-db:
@@ -66,6 +65,4 @@ volumes:
   hexform-db-data:
 
 networks:
-  caddy:
-    external: true
   hexform-net:

@@ -1,8 +1,7 @@
 FROM node:20-slim AS base
 RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
-RUN apk add --no-cache libc6-compat
 
-FROM base AS deps
+FROM base AS builder
 WORKDIR /app
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json .npmrc ./
 COPY apps/api/package.json apps/api/
@@ -14,13 +13,6 @@ COPY packages/services/package.json packages/services/
 COPY packages/trpc/package.json packages/trpc/
 COPY packages/typescript-config/package.json packages/typescript-config/
 RUN pnpm install --frozen-lockfile
-
-FROM base AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
-COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
-COPY --from=deps /app/packages/*/node_modules ./packages/*/node_modules
 COPY . .
 
 ARG DATABASE_URL
@@ -51,37 +43,33 @@ ENV CLOUDINARY_API_SECRET=$CLOUDINARY_API_SECRET
 ENV CLOUDINARY_CLOUD_NAME=$CLOUDINARY_CLOUD_NAME
 ENV NODE_ENV=$NODE_ENV
 
-RUN pnpm db:generate
 RUN pnpm build
+
+FROM base AS api-deps
+WORKDIR /tmp/api-deps
+RUN echo '{"name":"api-runtime","private":true,"dependencies":{"pg":"^8","express":"^5","cors":"^2.8","cookie-parser":"^1.4","@trpc/server":"^11","zod":"^4","trpc-to-openapi":"^3"}}' > package.json && npm install && npm install --legacy-peer-deps @scalar/express-api-reference
+RUN npm install
 
 FROM node:20-slim AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
 
-COPY --from=builder /app/apps/api/dist ./apps/api/dist
-COPY --from=builder /app/apps/api/package.json ./apps/api/package.json
 COPY --from=builder /app/apps/web/.next/standalone ./
 COPY --from=builder /app/apps/web/public ./apps/web/public
-COPY --from=builder /app/apps/web/package.json ./apps/web/package.json
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/apps/api/node_modules ./apps/api/node_modules
-COPY --from=builder /app/pnpm-lock.yaml ./
-COPY --from=builder /app/pnpm-workspace.yaml ./
-COPY --from=builder /app/package.json ./
+COPY --from=builder /app/apps/api/dist ./apps/api/dist
+COPY --from=builder /app/apps/api/package.json ./apps/api/package.json
+COPY --from=api-deps /tmp/api-deps/node_modules ./api-node-modules
 
 COPY --from=builder /app/packages/database/drizzle ./packages/database/drizzle
-COPY --from=builder /app/packages/database/package.json ./packages/database/package.json
-COPY --from=builder /app/packages/database/schema.ts ./packages/database/schema.ts
-COPY --from=builder /app/packages/database/index.ts ./packages/database/index.ts
-COPY --from=builder /app/packages/database/env.ts ./packages/database/env.ts
-COPY --from=builder /app/packages/database/node_modules ./packages/database/node_modules
 
+COPY migrate.js /app/migrate.js
 COPY entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
+
+ENV NODE_PATH=/app/api-node-modules
 
 EXPOSE 8600 5600
 
