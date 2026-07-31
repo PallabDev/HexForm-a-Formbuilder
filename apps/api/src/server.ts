@@ -4,7 +4,8 @@ import cors from "cors";
 
 import * as trpcExpress from "@trpc/server/adapters/express";
 import { generateOpenApiDocument, createOpenApiExpressMiddleware } from "trpc-to-openapi";
-import { apiReference } from "@scalar/express-api-reference";
+let apiReference: any = () => (req: any, res: any, next: any) => next();
+try { apiReference = require("@scalar/express-api-reference").apiReference; } catch(e) { console.warn("@scalar/express-api-reference not available, /docs disabled"); }
 import cookieParser from 'cookie-parser';
 
 import { serverRouter, createContext } from "@repo/trpc/server";

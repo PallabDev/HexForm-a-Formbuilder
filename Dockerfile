@@ -47,8 +47,7 @@ RUN pnpm build
 
 FROM base AS api-deps
 WORKDIR /tmp/api-deps
-RUN echo '{"name":"api-runtime","private":true,"dependencies":{"pg":"^8","express":"^5","cors":"^2.8","cookie-parser":"^1.4","@trpc/server":"^11","zod":"^4","trpc-to-openapi":"^3"}}' > package.json && npm install && npm install --legacy-peer-deps @scalar/express-api-reference
-RUN npm install
+RUN echo '{"name":"api-runtime","private":true,"dependencies":{"pg":"^8","express":"^5","cors":"^2.8","cookie-parser":"^1.4","@trpc/server":"^11","zod":"^4","trpc-to-openapi":"^3"}}' > package.json && npm install
 
 FROM node:20-slim AS runner
 WORKDIR /app
