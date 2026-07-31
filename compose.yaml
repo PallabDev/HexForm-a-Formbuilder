@@ -1,0 +1,71 @@
+services:
+  hexform-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        DATABASE_URL: "postgresql://postgres:postgres@hexform-db:5432/hexform"
+        JWT_SECRET: "${JWT_SECRET}"
+        RAZORPAY_KEY_ID: "${RAZORPAY_KEY_ID}"
+        RAZORPAY_KEY_SECRET: "${RAZORPAY_KEY_SECRET}"
+        BASE_URL: "https://hexform.pallabdev.in/api"
+        ALLOWED_ORIGIN: "https://hexform.pallabdev.in"
+        NEXT_PUBLIC_API_URL: "https://hexform.pallabdev.in/api/trpc"
+        RESEND_API_KEY: "${RESEND_API_KEY}"
+        RESEND_FROM: "${RESEND_FROM}"
+        CLOUDINARY_API_KEY: "${CLOUDINARY_API_KEY}"
+        CLOUDINARY_API_SECRET: "${CLOUDINARY_API_SECRET}"
+        CLOUDINARY_CLOUD_NAME: "${CLOUDINARY_CLOUD_NAME}"
+        NODE_ENV: "production"
+    container_name: hexform-app
+    restart: unless-stopped
+    ports:
+      - "8600:8600"
+      - "5600:5600"
+    depends_on:
+      hexform-db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgresql://postgres:postgres@hexform-db:5432/hexform"
+      JWT_SECRET: "${JWT_SECRET}"
+      RAZORPAY_KEY_ID: "${RAZORPAY_KEY_ID}"
+      RAZORPAY_KEY_SECRET: "${RAZORPAY_KEY_SECRET}"
+      BASE_URL: "https://hexform.pallabdev.in/api"
+      ALLOWED_ORIGIN: "https://hexform.pallabdev.in"
+      NEXT_PUBLIC_API_URL: "https://hexform.pallabdev.in/api/trpc"
+      RESEND_API_KEY: "${RESEND_API_KEY}"
+      RESEND_FROM: "${RESEND_FROM}"
+      CLOUDINARY_API_KEY: "${CLOUDINARY_API_KEY}"
+      CLOUDINARY_API_SECRET: "${CLOUDINARY_API_SECRET}"
+      CLOUDINARY_CLOUD_NAME: "${CLOUDINARY_CLOUD_NAME}"
+      NODE_ENV: "production"
+      PORT: "8600"
+    networks:
+      - caddy
+      - hexform-net
+
+  hexform-db:
+    image: postgres:16-alpine
+    container_name: hexform-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: hexform
+    volumes:
+      - hexform-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - hexform-net
+
+volumes:
+  hexform-db-data:
+
+networks:
+  caddy:
+    external: true
+  hexform-net:

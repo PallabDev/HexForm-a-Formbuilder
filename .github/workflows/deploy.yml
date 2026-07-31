@@ -46,7 +46,7 @@ jobs:
         uses: appleboy/ssh-action@v1.0.3
 
         with:
-          host: 88.150.138.98
+          host: 222.167.207.36
           username: root
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
@@ -62,104 +62,66 @@ jobs:
             source ~/.profile || true
 
             echo "================================="
-            echo "NODE INFO"
+            echo "DOCKER INFO"
             echo "================================="
 
-            which node
-            node -v
+            docker --version
+            docker compose version
 
             echo "================================="
-            echo "PNPM INFO"
+            echo "PROJECT DIRECTORY"
             echo "================================="
 
-            which pnpm
-            pnpm -v
+            cd /root/project
+
+            if [ ! -d "hexform" ]; then
+              echo "Cloning repository for the first time..."
+              git clone https://github.com/PallabDev/HexForm-a-Formbuilder.git hexform
+            fi
+
+            cd hexform
 
             echo "================================="
-            echo "PM2 INFO"
+            echo "PULLING LATEST CHANGES"
             echo "================================="
 
-            which pm2
-            pm2 -v
-
-            echo "================================="
-            echo "PROJECT FILES"
-            echo "================================="
-
-            cd /root/projects/HexForm-a-Formbuilder
-
-            pwd
-
-            echo "Resetting local changes to avoid merge conflicts..."
             git reset --hard
             git clean -fd
-
-            echo "Pulling latest changes from Git..."
             git pull origin main || git pull origin master || true
 
-            ls -la
-
             echo "================================="
-            echo "INSTALLING"
+            echo "ENV FILE"
             echo "================================="
 
-            pnpm install --frozen-lockfile
+            if [ ! -f .env ]; then
+              echo "ERROR: .env file not found!"
+              exit 1
+            fi
 
             echo "================================="
-            echo "BUILDING"
+            echo "STOPPING EXISTING CONTAINERS"
             echo "================================="
 
-            # Clear stale caches and lockfiles to force a completely fresh, updated build
-            rm -f apps/web/.next/lock
-            rm -rf apps/web/.next
-            rm -rf apps/api/dist
-            rm -rf .turbo
-
-            NODE_OPTIONS="--max-old-space-size=4096" pnpm build
+            docker compose -f compose.yaml down || true
 
             echo "================================="
-            echo "PM2 ECOSYSTEM FILE"
+            echo "BUILDING AND STARTING"
             echo "================================="
 
-            cat ecosystem.config.js
+            docker compose -f compose.yaml up -d --build
 
             echo "================================="
-            echo "STARTING PM2"
+            echo "WAITING FOR CONTAINERS"
             echo "================================="
 
-            # Delete existing registrations to ensure clean start, then start
-            pm2 delete hexform-backend hexform-frontend || true
-            pm2 start ecosystem.config.js --update-env
+            sleep 10
 
             echo "================================="
-            echo "PM2 LIST"
+            echo "CONTAINER STATUS"
             echo "================================="
 
-            pm2 list
-
-            echo "================================="
-            echo "PM2 DESCRIBE FRONTEND"
-            echo "================================="
-
-            pm2 describe hexform-frontend || true
-
-            echo "================================="
-            echo "PM2 DESCRIBE BACKEND"
-            echo "================================="
-
-            pm2 describe hexform-backend || true
-
-            echo "================================="
-            echo "PM2 LOGS"
-            echo "================================="
-
-            pm2 logs --lines 50 --nostream || true
-
-            echo "================================="
-            echo "SAVING PM2"
-            echo "================================="
-
-            pm2 save
+            docker compose -f compose.yaml ps
+            docker compose -f compose.yaml logs --tail=50
 
             echo "================================="
             echo "DEPLOY DONE"
