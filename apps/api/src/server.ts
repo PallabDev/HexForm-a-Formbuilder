@@ -52,6 +52,14 @@ app.get("/openapi.json", (_, res) => {
 });
 
 app.use(
+    "/api/trpc",
+    trpcExpress.createExpressMiddleware({
+        router: serverRouter,
+        createContext,
+    }),
+);
+
+app.use(
     "/api",
     createOpenApiExpressMiddleware({
         router: serverRouter,
@@ -59,14 +67,6 @@ app.use(
         responseMeta: undefined,
         onError: undefined,
         maxBodySize: undefined,
-    }),
-);
-
-app.use(
-    "/api/trpc",
-    trpcExpress.createExpressMiddleware({
-        router: serverRouter,
-        createContext,
     }),
 );
 
